@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Clientes from '../pages/Clientes';
 import NovoCliente from '../pages/NovoCliente';
+import EditarCliente from '../pages/EditarCliente';
 import Financeiro from '../pages/Financeiro';
 import Historico from '../pages/Historico';
 import Relatorios from '../pages/Relatorios';
@@ -17,6 +18,7 @@ const AppRoutes = () => {
           <Route index element={<Home />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<NovoCliente />} />
+          <Route path="clientes/editar/:id" element={<EditarCliente />} />
           <Route path="financeiro" element={<Financeiro />} />
           <Route path="historico" element={<Historico />} />
           <Route path="relatorios" element={<Relatorios />} />
