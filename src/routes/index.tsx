@@ -10,7 +10,7 @@ import NotFound from '../pages/NotFound';
 
 const AppRoutes = () => {
   return (
-    <BrowserRouter basename="/Soltracker">
+    <BrowserRouter basename="/SolTracker-">
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />

@@ -5,7 +5,7 @@ import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Soltracker/', // Altere para o nome do seu repositório no GitHub
+  base: '/SolTracker-/', // Ajustado para o nome exato do repositório
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
