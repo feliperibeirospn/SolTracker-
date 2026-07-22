@@ -1,29 +1,32 @@
 import { create } from 'zustand';
+import { CryptoService } from '@/services/cryptoService';
 
 interface AuthState {
   isAuthenticated: boolean;
   masterHash: string | null;
-  login: (password: string) => boolean;
-  setMasterPassword: (password: string) => void;
+  userEmail: string | null;
+  login: (email: string, password: string) => boolean;
+  setMasterPassword: (email: string, password: string) => void;
   logout: () => void;
 }
-
-import { CryptoService } from '@/services/cryptoService';
 
 export const useAuth = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   masterHash: localStorage.getItem('master_hash'),
+  userEmail: localStorage.getItem('user_email'),
 
-  setMasterPassword: (password: string) => {
-    const hash = CryptoService.hashPassword(password);
+  setMasterPassword: (email: string, password: string) => {
+    const hash = CryptoService.hashPassword(email.toLowerCase() + password);
     localStorage.setItem('master_hash', hash);
-    set({ masterHash: hash, isAuthenticated: true });
+    localStorage.setItem('user_email', email.toLowerCase());
+    set({ masterHash: hash, userEmail: email.toLowerCase(), isAuthenticated: true });
   },
 
-  login: (password: string) => {
+  login: (email: string, password: string) => {
     const { masterHash } = get();
-    if (masterHash && CryptoService.verifyPassword(password, masterHash)) {
-      set({ isAuthenticated: true });
+    const hashToVerify = CryptoService.hashPassword(email.toLowerCase() + password);
+    if (masterHash === hashToVerify) {
+      set({ isAuthenticated: true, userEmail: email.toLowerCase() });
       return true;
     }
     return false;
