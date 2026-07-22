@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   MdDashboard,
   MdPeople,
@@ -9,11 +9,14 @@ import {
   MdSettings,
   MdMenu,
   MdDarkMode,
-  MdLightMode
+  MdLightMode,
+  MdClose
 } from 'react-icons/md';
 import '@/styles/layout.css';
 
 const Layout: React.FC = () => {
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
       (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -29,14 +32,26 @@ const Layout: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location]);
+
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   return (
-    <div className="layout-container">
+    <div className={`layout-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      {/* Overlay for mobile */}
+      <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <span>SolTracker</span>
+          <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>
+            <MdClose size={24} />
+          </button>
         </div>
         <nav className="sidebar-menu">
           <NavLink to="/" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
@@ -70,7 +85,11 @@ const Layout: React.FC = () => {
       <div className="main-content">
         {/* Topbar */}
         <header className="topbar">
-          <MdMenu size={24} style={{ cursor: 'pointer' }} />
+          <div className="topbar-left">
+            <button className="hamburger-btn" onClick={toggleSidebar}>
+              <MdMenu size={24} />
+            </button>
+          </div>
 
           <div className="user-profile">
             <button

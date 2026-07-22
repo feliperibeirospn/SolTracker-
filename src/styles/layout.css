@@ -2,6 +2,8 @@
   display: flex;
   min-height: 100vh;
   width: 100%;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -12,16 +14,28 @@
   flex-direction: column;
   transition: all 0.3s ease;
   border-right: 1px solid var(--border-color);
-  z-index: 100;
+  z-index: 1000;
+  position: relative;
 }
 
 .sidebar-header {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   font-size: 1.5rem;
   font-weight: bold;
   text-align: center;
   border-bottom: 1px solid var(--border-color);
   color: var(--solar-yellow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
 }
 
 .sidebar-menu {
@@ -41,6 +55,7 @@
 
 .menu-item svg {
   color: var(--solar-yellow);
+  min-width: 24px;
 }
 
 .menu-item:hover, .menu-item.active {
@@ -58,6 +73,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--bg-color);
+  min-width: 0; /* Prevents flex items from overflowing */
 }
 
 .topbar {
@@ -70,6 +86,15 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: none; /* Hidden on desktop */
+  padding: 8px;
 }
 
 .content-area {
@@ -94,28 +119,49 @@
   gap: 10px;
 }
 
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 999;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
+  .hamburger-btn {
+    display: block;
+  }
+
   .sidebar {
-    width: 70px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    z-index: 1000;
   }
 
-  .sidebar-header span {
-    display: none;
+  .sidebar.open {
+    transform: translateX(0);
   }
 
-  .menu-item span {
-    display: none;
+  .mobile-close-btn {
+    display: block;
   }
 
-  .menu-item {
-    justify-content: center;
+  .layout-container.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+
+  .topbar {
+    padding: 0 1rem;
+  }
+
+  .content-area {
     padding: 1rem;
-  }
-
-  .menu-item.active {
-    border-left: none;
-    border-bottom: 2px solid var(--solar-orange);
-    padding-left: 1rem;
   }
 }
