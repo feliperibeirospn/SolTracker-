@@ -69,6 +69,8 @@ const Home: React.FC = () => {
 
       setStats(statsUpdate);
 
+      // CORREÇÃO DA LÓGICA DO GRÁFICO
+      // Criamos os últimos 6 meses a partir de agora
       const last6Months = Array.from({ length: 6 }).map((_, i) => {
         const date = subMonths(startOfMonth(new Date()), i);
         return {
@@ -79,13 +81,22 @@ const Home: React.FC = () => {
         };
       }).reverse();
 
+      // Mapeamos TODAS as faturas (não apenas as pagas, para refletir o histórico real se desejar,
+      // ou mantemos apenas pagas para "Receita Realizada")
       p.forEach(f => {
-        if (f.status === 'pago') {
-          const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, f.data));
-          if (monthIndex !== -1) {
-            last6Months[monthIndex].receita += (f.valor || 0);
+        // Usamos a data de vencimento da fatura para encaixar no mês do gráfico
+        const fDate = new Date(f.data);
+
+        const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, fDate));
+
+        if (monthIndex !== -1) {
+          // Se quiser mostrar apenas o que FOI PAGO:
+          if (f.status === 'pago') {
+            last6Months[monthIndex].receita += (f.valorComDesconto || f.valor || 0);
             last6Months[monthIndex].lucro += (f.valorLiquido || 0);
           }
+          // Nota: Se quiser mostrar a receita PREVISTA vs REALIZADA, a lógica mudaria.
+          // Aqui mantemos Receita Bruta (Faturada) vs Lucro Real (Líquido)
         }
       });
 
@@ -178,7 +189,7 @@ const Home: React.FC = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
         <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Receita vs Lucro Real (R$)</h3>
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Receita vs Lucro Líquido (R$)</h3>
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
               <BarChart data={chartData}>
@@ -187,6 +198,7 @@ const Home: React.FC = () => {
                 <YAxis stroke="var(--text-secondary)" />
                 <Tooltip
                   contentStyle={{ backgroundColor: 'var(--surface-color)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  formatter={(value: any, name: any) => [`R$ ${Number(value).toFixed(2)}`, name]}
                 />
                 <Legend />
                 <Bar name="Receita Bruta" dataKey="receita" fill="var(--solar-yellow)" radius={[4, 4, 0, 0]} />

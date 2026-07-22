@@ -10,7 +10,8 @@ import {
   MdMenu,
   MdDarkMode,
   MdLightMode,
-  MdClose
+  MdClose,
+  MdFileUpload
 } from 'react-icons/md';
 import '@/styles/layout.css';
 
@@ -73,6 +74,10 @@ const Layout: React.FC = () => {
           <NavLink to="/relatorios" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
             <MdBarChart size={24} />
             <span>Relatórios</span>
+          </NavLink>
+          <NavLink to="/importacao" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
+            <MdFileUpload size={24} />
+            <span>Importação</span>
           </NavLink>
           <NavLink to="/configuracoes" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
             <MdSettings size={24} />

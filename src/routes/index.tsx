@@ -8,6 +8,7 @@ import DetalhesCliente from '../pages/DetalhesCliente';
 import Financeiro from '../pages/Financeiro';
 import Historico from '../pages/Historico';
 import Relatorios from '../pages/Relatorios';
+import Importacao from '../pages/Importacao';
 import Configuracoes from '../pages/Configuracoes';
 import NotFound from '../pages/NotFound';
 
@@ -24,6 +25,7 @@ const AppRoutes = () => {
           <Route path="financeiro" element={<Financeiro />} />
           <Route path="historico" element={<Historico />} />
           <Route path="relatorios" element={<Relatorios />} />
+          <Route path="importacao" element={<Importacao />} />
           <Route path="configuracoes" element={<Configuracoes />} />
           <Route path="*" element={<NotFound />} />
         </Route>
