@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   MdDashboard,
@@ -7,11 +7,30 @@ import {
   MdHistory,
   MdBarChart,
   MdSettings,
-  MdMenu
+  MdMenu,
+  MdDarkMode,
+  MdLightMode
 } from 'react-icons/md';
 import '@/styles/layout.css';
 
 const Layout: React.FC = () => {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark' ||
+      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
   return (
     <div className="layout-container">
       {/* Sidebar */}
@@ -52,7 +71,23 @@ const Layout: React.FC = () => {
         {/* Topbar */}
         <header className="topbar">
           <MdMenu size={24} style={{ cursor: 'pointer' }} />
+
           <div className="user-profile">
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                marginRight: '1rem'
+              }}
+              title="Alternar Tema"
+            >
+              {isDarkMode ? <MdLightMode size={24} /> : <MdDarkMode size={24} />}
+            </button>
             <span>Usuário</span>
           </div>
         </header>

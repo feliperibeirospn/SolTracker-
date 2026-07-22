@@ -1,34 +1,71 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Solar Energy Palette */
+  --solar-yellow: #fdb813;
+  --solar-orange: #f39200;
+  --solar-gray-100: #f8f9fa;
+  --solar-gray-200: #e9ecef;
+  --solar-gray-300: #dee2e6;
+  --solar-gray-700: #495057;
+  --solar-gray-800: #343a40;
+  --solar-gray-900: #212529;
+
+  /* Theme Defaults (Light Mode) */
+  --bg-color: #ffffff;
+  --surface-color: #f8f9fa;
+  --sidebar-bg: #212529;
+  --sidebar-text: #dee2e6;
+  --sidebar-hover: #343a40;
+  --topbar-bg: #ffffff;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --accent-color: var(--solar-orange);
+  --border-color: #dee2e6;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+}
 
-  color-scheme: light dark;
-  color: #333;
-  background-color: #f5f5f5;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --sidebar-bg: #000000;
+    --sidebar-text: #e9ecef;
+    --sidebar-hover: #1e1e1e;
+    --topbar-bg: #1e1e1e;
+    --text-primary: #f8f9fa;
+    --text-secondary: #adb5bd;
+    --border-color: #333333;
+  }
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Fallback for manual dark mode toggle (optional later) */
+[data-theme='dark'] {
+  --bg-color: #121212;
+  --surface-color: #1e1e1e;
+  --sidebar-bg: #000000;
+  --sidebar-text: #e9ecef;
+  --sidebar-hover: #1e1e1e;
+  --topbar-bg: #1e1e1e;
+  --text-primary: #f8f9fa;
+  --text-secondary: #adb5bd;
+  --border-color: #333333;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
   min-height: 100vh;
-}
-
-#root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  margin-top: 0;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 * {
   box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--solar-orange);
+  margin-top: 0;
 }
