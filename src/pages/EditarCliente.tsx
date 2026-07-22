@@ -16,6 +16,7 @@ const clienteSchema = z.object({
   consumoMedio: z.number().min(0, 'Deve ser maior ou igual a 0'),
   saldoAtual: z.number(),
   valorMensal: z.number().min(0, 'Deve ser maior ou igual a 0'),
+  percentualDesconto: z.number().min(0).max(100, 'Percentual deve ser entre 0 e 100'),
   dataInicio: z.string().min(1, 'Data de início obrigatória'),
   observacoes: z.string().optional(),
 });
@@ -124,9 +125,9 @@ const EditarCliente: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label>Saldo Atual (R$)</label>
-            <input {...register('saldoAtual', { valueAsNumber: true })} type="number" step="0.01" />
-            {errors.saldoAtual && <span className="error-message">{errors.saldoAtual.message}</span>}
+            <label>Desconto (%)</label>
+            <input {...register('percentualDesconto', { valueAsNumber: true })} type="number" />
+            {errors.percentualDesconto && <span className="error-message">{errors.percentualDesconto.message}</span>}
           </div>
 
           <div className="form-group">
