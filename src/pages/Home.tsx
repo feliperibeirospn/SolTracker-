@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ClienteService } from '@/services/clienteService';
 import { FinanceiroService } from '@/services/financeiroService';
-import { MdPeople, MdAttachMoney, MdErrorOutline, MdAccountBalance } from 'react-icons/md';
+import { type Cliente, type Pagamento } from '@/services/db';
+import { MdPeople, MdAttachMoney, MdErrorOutline, MdAccountBalance, MdPictureAsPdf, MdTableChart } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { format, startOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { exportToPDF, exportToExcel } from '@/utils/exportUtils';
 
 interface DashboardStats {
   totalClientes: number;
@@ -29,6 +31,8 @@ const Home: React.FC = () => {
     defaulterClients: 0,
     lucroAcumulado: 0,
   });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [faturas, setFaturas] = useState<Pagamento[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,28 +42,30 @@ const Home: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      const clientes = await ClienteService.getAll();
-      const pagamentos = await FinanceiroService.getAll();
+      const c = await ClienteService.getAll();
+      const p = await FinanceiroService.getAll();
+      setClientes(c);
+      setFaturas(p);
 
       const statsUpdate: DashboardStats = {
-        totalClientes: clientes.length,
-        receitaTotal: pagamentos
-          .filter(p => p.status === 'pago')
-          .reduce((acc, p) => acc + (p.valor || 0), 0),
-        totalAtrasados: pagamentos
-          .filter(p => p.status === 'atrasado')
-          .reduce((acc, p) => acc + (p.valor || 0), 0),
-        saldoTotal: clientes.reduce((acc, c) => acc + (c.saldoAtual || 0), 0),
+        totalClientes: c.length,
+        receitaTotal: p
+          .filter(f => f.status === 'pago')
+          .reduce((acc, f) => acc + (f.valor || 0), 0),
+        totalAtrasados: p
+          .filter(f => f.status === 'atrasado')
+          .reduce((acc, f) => acc + (f.valor || 0), 0),
+        saldoTotal: c.reduce((acc, curr) => acc + (curr.saldoAtual || 0), 0),
         activeClients: 0,
         defaulterClients: 0,
-        lucroAcumulado: pagamentos
-          .filter(p => p.status === 'pago')
-          .reduce((acc, p) => acc + (p.valorLiquido || 0), 0),
+        lucroAcumulado: p
+          .filter(f => f.status === 'pago')
+          .reduce((acc, f) => acc + (f.valorLiquido || 0), 0),
       };
 
-      const clientWithAtraso = new Set(pagamentos.filter(p => p.status === 'atrasado').map(p => p.clienteId));
+      const clientWithAtraso = new Set(p.filter(f => f.status === 'atrasado').map(f => f.clienteId));
       statsUpdate.defaulterClients = clientWithAtraso.size;
-      statsUpdate.activeClients = clientes.length - clientWithAtraso.size;
+      statsUpdate.activeClients = c.length - clientWithAtraso.size;
 
       setStats(statsUpdate);
 
@@ -73,12 +79,12 @@ const Home: React.FC = () => {
         };
       }).reverse();
 
-      pagamentos.forEach(p => {
-        if (p.status === 'pago') {
-          const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, p.data));
+      p.forEach(f => {
+        if (f.status === 'pago') {
+          const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, f.data));
           if (monthIndex !== -1) {
-            last6Months[monthIndex].receita += (p.valor || 0);
-            last6Months[monthIndex].lucro += (p.valorLiquido || 0);
+            last6Months[monthIndex].receita += (f.valor || 0);
+            last6Months[monthIndex].lucro += (f.valorLiquido || 0);
           }
         }
       });
@@ -120,8 +126,28 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ textAlign: 'left' }}>
-      <h1>Dashboard Solar</h1>
-      <p style={{ marginBottom: '2rem' }}>Resumo financeiro e lucro real do sistema.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1>Dashboard Solar</h1>
+          <p>Resumo financeiro e lucro real do sistema.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToPDF(faturas, clientes)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <MdPictureAsPdf size={20} /> Exportar PDF
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToExcel(faturas, clientes)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <MdTableChart size={20} /> Exportar Excel
+          </button>
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         <Card

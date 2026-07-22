@@ -7,13 +7,14 @@ import { FinanceiroService } from '@/services/financeiroService';
 import { type Cliente, type Pagamento } from '@/services/db';
 import {
   MdAdd, MdCalculate, MdCheckCircle, MdError, MdPending,
-  MdFilterList, MdPayments, MdEdit, MdDelete
+  MdFilterList, MdPayments, MdEdit, MdDelete, MdPictureAsPdf, MdTableChart
 } from 'react-icons/md';
 import {
   format, isBefore, startOfDay, isToday, isThisWeek, isThisMonth,
   isThisYear
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { exportToPDF, exportToExcel } from '@/utils/exportUtils';
 
 const contaSchema = z.object({
   clienteId: z.number().min(1, 'Selecione um cliente'),
@@ -227,13 +228,31 @@ const Financeiro: React.FC = () => {
           <h1>Financeiro</h1>
           <p>Gestão de faturas, vencimentos e recebimentos.</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => { if(showForm) handleCancelForm(); else setShowForm(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          {showForm ? 'Cancelar' : <><MdAdd size={20} /> Nova Fatura</>}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToPDF(filteredFaturas, clientes)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            title="Exportar PDF desta visualização"
+          >
+            <MdPictureAsPdf size={20} /> PDF
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToExcel(filteredFaturas, clientes)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            title="Exportar Excel desta visualização"
+          >
+            <MdTableChart size={20} /> Excel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { if(showForm) handleCancelForm(); else setShowForm(true); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            {showForm ? 'Cancelar' : <><MdAdd size={20} /> Nova Fatura</>}
+          </button>
+        </div>
       </div>
 
       <div style={{
@@ -320,12 +339,8 @@ const Financeiro: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label>Vencimento (Dia/Mês/Ano)</label>
-                <input
-                  {...register('data')}
-                  type="date"
-                  style={{ display: 'block', width: '100%' }}
-                />
+                <label>Vencimento</label>
+                <input {...register('data')} type="date" />
                 {errors.data && <span className="error-message">{errors.data.message}</span>}
               </div>
 
