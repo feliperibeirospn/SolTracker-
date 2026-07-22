@@ -7,7 +7,7 @@ import { FinanceiroService } from '@/services/financeiroService';
 import { type Cliente, type Pagamento } from '@/services/db';
 import {
   MdAdd, MdCalculate, MdCheckCircle, MdError, MdPending,
-  MdFilterList, MdPayments
+  MdFilterList, MdPayments, MdEdit, MdDelete
 } from 'react-icons/md';
 import {
   format, isBefore, startOfDay, isToday, isThisWeek, isThisMonth,
@@ -37,13 +37,11 @@ const Financeiro: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [faturas, setFaturas] = useState<Pagamento[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingFatura, setEditingFatura] = useState<Pagamento | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
 
-  // Tasks 5.2 Filters
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'week' | 'month' | 'year'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pago' | 'pendente' | 'atrasado'>('all');
-
-  // Task 5.3 Payment Modal
   const [receivingPayment, setReceivingPayment] = useState<Pagamento | null>(null);
 
   const {
@@ -110,13 +108,11 @@ const Financeiro: React.FC = () => {
 
   const onConfirmPayment = async (data: PagamentoFormData) => {
     if (!receivingPayment?.id) return;
-
     try {
       await FinanceiroService.update(receivingPayment.id, {
         status: 'pago',
         data: new Date(data.dataPagamento),
         metodo: data.metodo,
-        // No BD a interface usa metodo, adicionaremos observacoes via metadado se necessário futuramente
       } as any);
       alert('Pagamento registrado com sucesso!');
       setReceivingPayment(null);
@@ -130,44 +126,83 @@ const Financeiro: React.FC = () => {
 
   const onSubmit = async (data: ContaFormData) => {
     if (!selectedCliente) return;
-
     const percentualDesconto = selectedCliente.percentualDesconto || 0;
     const valorComDesconto = data.valorTotalBruto * (1 - (percentualDesconto / 100));
     const valorLiquido = valorComDesconto - data.valorTaxaUso;
 
     try {
-      await FinanceiroService.create({
-        ...data,
-        data: new Date(data.data),
-        clienteId: Number(data.clienteId),
-        percentualDescontoAplicado: percentualDesconto,
-        valorComDesconto,
-        valorLiquido,
-        valor: valorComDesconto,
-        status: 'pendente'
-      } as any);
-      alert('Fatura gerada com sucesso!');
-      setShowForm(false);
-      reset();
+      if (editingFatura?.id) {
+        await FinanceiroService.update(editingFatura.id, {
+          ...data,
+          data: new Date(data.data),
+          clienteId: Number(data.clienteId),
+          percentualDescontoAplicado: percentualDesconto,
+          valorComDesconto,
+          valorLiquido,
+          valor: valorComDesconto,
+        } as any);
+        alert('Fatura atualizada com sucesso!');
+      } else {
+        await FinanceiroService.create({
+          ...data,
+          data: new Date(data.data),
+          clienteId: Number(data.clienteId),
+          percentualDescontoAplicado: percentualDesconto,
+          valorComDesconto,
+          valorLiquido,
+          valor: valorComDesconto,
+          status: 'pendente'
+        } as any);
+        alert('Fatura gerada com sucesso!');
+      }
+      handleCancelForm();
       loadData();
     } catch (error) {
       console.error(error);
-      alert('Erro ao gerar fatura.');
+      alert('Erro ao salvar fatura.');
     }
+  };
+
+  const handleEdit = (fatura: Pagamento) => {
+    setEditingFatura(fatura);
+    setShowForm(true);
+    reset({
+      clienteId: fatura.clienteId,
+      referenciaMes: fatura.referenciaMes,
+      consumoKw: fatura.consumoKw,
+      valorTotalBruto: fatura.valorTotalBruto,
+      valorTaxaUso: fatura.valorTaxaUso,
+      data: new Date(fatura.data).toISOString().split('T')[0],
+    });
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir esta fatura?')) {
+      try {
+        await FinanceiroService.delete(id);
+        loadData();
+      } catch (error) {
+        console.error(error);
+        alert('Erro ao excluir fatura.');
+      }
+    }
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingFatura(null);
+    reset();
   };
 
   const filteredFaturas = useMemo(() => {
     return faturas.filter(f => {
       const fDate = new Date(f.data);
-
       let matchesPeriod = true;
       if (filterPeriod === 'today') matchesPeriod = isToday(fDate);
       else if (filterPeriod === 'week') matchesPeriod = isThisWeek(fDate);
       else if (filterPeriod === 'month') matchesPeriod = isThisMonth(fDate);
       else if (filterPeriod === 'year') matchesPeriod = isThisYear(fDate);
-
       const matchesStatus = filterStatus === 'all' || f.status === filterStatus;
-
       return matchesPeriod && matchesStatus;
     });
   }, [faturas, filterPeriod, filterStatus]);
@@ -194,7 +229,7 @@ const Financeiro: React.FC = () => {
         </div>
         <button
           className="btn btn-primary"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { if(showForm) handleCancelForm(); else setShowForm(true); }}
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           {showForm ? 'Cancelar' : <><MdAdd size={20} /> Nova Fatura</>}
@@ -247,7 +282,7 @@ const Financeiro: React.FC = () => {
 
       {showForm && (
         <div className="form-container" style={{ marginBottom: '2rem', maxWidth: 'none' }}>
-          <h2 style={{ color: 'var(--solar-orange)', marginBottom: '1.5rem' }}>Gerar Fatura</h2>
+          <h2 style={{ color: 'var(--solar-orange)', marginBottom: '1.5rem' }}>{editingFatura ? 'Editar Fatura' : 'Gerar Fatura'}</h2>
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="form-grid">
               <div className="form-group">
@@ -285,8 +320,12 @@ const Financeiro: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label>Vencimento</label>
-                <input {...register('data')} type="date" />
+                <label>Vencimento (Dia/Mês/Ano)</label>
+                <input
+                  {...register('data')}
+                  type="date"
+                  style={{ display: 'block', width: '100%' }}
+                />
                 {errors.data && <span className="error-message">{errors.data.message}</span>}
               </div>
 
@@ -319,8 +358,9 @@ const Financeiro: React.FC = () => {
             </div>
 
             <div className="form-actions">
+              <button type="button" className="btn btn-secondary" onClick={handleCancelForm}>Voltar</button>
               <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                Lançar Fatura
+                {editingFatura ? 'Salvar Alterações' : 'Lançar Fatura'}
               </button>
             </div>
           </form>
@@ -426,19 +466,35 @@ const Financeiro: React.FC = () => {
                       </div>
                     </td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>
-                      {f.status !== 'pago' ? (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
+                        {f.status !== 'pago' ? (
+                          <button
+                            onClick={() => setReceivingPayment(f)}
+                            className="btn btn-primary"
+                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          >
+                            <MdPayments /> Receber
+                          </button>
+                        ) : (
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                            Paga em {format(new Date(f.data), 'dd/MM/yyyy')}
+                          </div>
+                        )}
                         <button
-                          onClick={() => setReceivingPayment(f)}
-                          className="btn btn-primary"
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={() => handleEdit(f)}
+                          style={{ background: 'none', border: 'none', color: 'var(--solar-orange)', cursor: 'pointer' }}
+                          title="Editar Fatura"
                         >
-                          <MdPayments /> Receber
+                          <MdEdit size={20} />
                         </button>
-                      ) : (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                          Paga em {format(new Date(f.data), 'dd/MM/yyyy')}
-                        </div>
-                      )}
+                        <button
+                          onClick={() => f.id && handleDelete(f.id)}
+                          style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer' }}
+                          title="Excluir Fatura"
+                        >
+                          <MdDelete size={20} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

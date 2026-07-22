@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClienteService } from '@/services/clienteService';
+import { FinanceiroService } from '@/services/financeiroService';
 import { type Cliente } from '@/services/db';
 import { MdAdd, MdSearch, MdEdit, MdDelete, MdChevronLeft, MdChevronRight, MdSort } from 'react-icons/md';
 
@@ -87,20 +88,48 @@ const Clientes: React.FC = () => {
             className="btn btn-secondary"
             onClick={async () => {
               const testData: any[] = [
-                { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, dataInicio: new Date('2024-01-10'), dataCadastro: new Date() },
-                { nome: 'Maria Painel', telefone: '(21) 97777-6666', documento: '987.654.321-09', email: 'maria@paineis.com', cidade: 'Rio de Janeiro', distribuidora: 'Light', consumoMedio: 450, saldoAtual: 50, valorMensal: 200, dataInicio: new Date('2023-11-15'), dataCadastro: new Date() },
-                { nome: 'Carlos Energia', telefone: '(31) 96666-5555', documento: '456.123.789-05', email: 'carlos@energia.com', cidade: 'Belo Horizonte', distribuidora: 'Cemig', consumoMedio: 280, saldoAtual: -20, valorMensal: 120, dataInicio: new Date('2024-02-20'), dataCadastro: new Date() },
-                { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, dataInicio: new Date('2023-09-01'), dataCadastro: new Date() },
-                { nome: 'Ricardo Watts', telefone: '(51) 94444-3333', documento: '159.357.258-07', email: 'ricardo@watts.com', cidade: 'Porto Alegre', distribuidora: 'CEEE', consumoMedio: 400, saldoAtual: 0, valorMensal: 180, dataInicio: new Date('2024-03-05'), dataCadastro: new Date() }
+                { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, percentualDesconto: 20, dataInicio: new Date('2024-01-10'), dataCadastro: new Date() },
+                { nome: 'Maria Painel', telefone: '(21) 97777-6666', documento: '987.654.321-09', email: 'maria@paineis.com', cidade: 'Rio de Janeiro', distribuidora: 'Light', consumoMedio: 450, saldoAtual: 50, valorMensal: 200, percentualDesconto: 15, dataInicio: new Date('2023-11-15'), dataCadastro: new Date() },
+                { nome: 'Carlos Energia', telefone: '(31) 96666-5555', documento: '456.123.789-05', email: 'carlos@energia.com', cidade: 'Belo Horizonte', distribuidora: 'Cemig', consumoMedio: 280, saldoAtual: -20, valorMensal: 120, percentualDesconto: 10, dataInicio: new Date('2024-02-20'), dataCadastro: new Date() },
+                { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, percentualDesconto: 25, dataInicio: new Date('2023-09-01'), dataCadastro: new Date() },
+                { nome: 'Ricardo Watts', telefone: '(51) 94444-3333', documento: '159.357.258-07', email: 'ricardo@watts.com', cidade: 'Porto Alegre', distribuidora: 'CEEE', consumoMedio: 400, saldoAtual: 0, valorMensal: 180, percentualDesconto: 20, dataInicio: new Date('2024-03-05'), dataCadastro: new Date() }
               ];
+
               for (const item of testData) {
-                await ClienteService.create(item);
+                const clientId = await ClienteService.create(item);
+
+                // Gerar faturas de teste para cada cliente (Janeiro a Junho)
+                const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'];
+                for (let i = 0; i < months.length; i++) {
+                  const bruto = 200 + (Math.random() * 300);
+                  const taxa = 50 + (Math.random() * 50);
+                  const desc = item.percentualDesconto;
+                  const vDesc = bruto * (1 - (desc / 100));
+                  const vLiq = vDesc - taxa;
+                  const dataVenc = new Date(2024, i, 10);
+
+                  await FinanceiroService.create({
+                    clienteId: clientId as number,
+                    referenciaMes: `${months[i]}/2024`,
+                    consumoKw: 100 + (Math.random() * 400),
+                    valorTotalBruto: bruto,
+                    valorTaxaUso: taxa,
+                    percentualDescontoAplicado: desc,
+                    valorComDesconto: vDesc,
+                    valorLiquido: vLiq,
+                    valor: vDesc,
+                    data: dataVenc,
+                    status: i < 5 ? 'pago' : (Math.random() > 0.5 ? 'pendente' : 'atrasado'),
+                    metodo: 'Pix'
+                  } as any);
+                }
               }
+              alert('Dados de Clientes e Financeiro gerados com sucesso!');
               loadClientes();
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            Gerar Dados de Teste
+            Gerar Dados de Teste (Completo)
           </button>
           <button
             className="btn btn-primary"
