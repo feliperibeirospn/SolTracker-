@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Clientes from '../pages/Clientes';
+import NovoCliente from '../pages/NovoCliente';
 import Financeiro from '../pages/Financeiro';
 import Historico from '../pages/Historico';
 import Relatorios from '../pages/Relatorios';
@@ -15,6 +16,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="clientes" element={<Clientes />} />
+          <Route path="clientes/novo" element={<NovoCliente />} />
           <Route path="financeiro" element={<Financeiro />} />
           <Route path="historico" element={<Historico />} />
           <Route path="relatorios" element={<Relatorios />} />
