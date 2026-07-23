@@ -18,11 +18,13 @@ import {
 } from 'react-icons/md';
 import '@/styles/layout.css';
 import { useSync } from '@/hooks/useSync';
+import { useNotifications } from '@/hooks/useNotifications';
 import CommandPalette from '../CommandPalette';
 
 const Layout: React.FC = () => {
   const location = useLocation();
   const { isOnline } = useSync();
+  useNotifications(); // Ativa as notificações ao carregar o layout principal
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||

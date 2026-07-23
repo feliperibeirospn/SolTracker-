@@ -4,11 +4,12 @@ import { FinanceiroService } from '@/services/financeiroService';
 import { type Cliente, type Pagamento } from '@/services/db';
 import {
   MdPeople, MdAttachMoney, MdTrendingUp, MdTrendingDown,
-  MdElectricBolt, MdSecurity, MdPictureAsPdf, MdTableChart
+  MdElectricBolt, MdPictureAsPdf, MdTableChart,
+  MdPendingActions, MdMoneyOff, MdPercent, MdAccountBalanceWallet
 } from 'react-icons/md';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area
+  AreaChart, Area, BarChart, Bar, Legend
 } from 'recharts';
 import { format, startOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,25 +19,27 @@ import Skeleton from '@/components/Skeleton';
 
 interface DashboardStats {
   totalClientes: number;
-  receitaTotal: number;
-  totalAtrasados: number;
-  saldoTotal: number;
-  activeClients: number;
-  defaulterClients: number;
-  lucroAcumulado: number;
+  receitaPrevista: number;
+  receitaRecebida: number;
+  receitaEmAberto: number;
+  lucroReal: number;
+  totalInadimplentes: number;
+  taxaInadimplencia: number;
   crescimentoMensal: number;
+  consumoGeral: number;
 }
 
 const Home: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalClientes: 0,
-    receitaTotal: 0,
-    totalAtrasados: 0,
-    saldoTotal: 0,
-    activeClients: 0,
-    defaulterClients: 0,
-    lucroAcumulado: 0,
+    receitaPrevista: 0,
+    receitaRecebida: 0,
+    receitaEmAberto: 0,
+    lucroReal: 0,
+    totalInadimplentes: 0,
+    taxaInadimplencia: 0,
     crescimentoMensal: 0,
+    consumoGeral: 0,
   });
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [faturas, setFaturas] = useState<Pagamento[]>([]);
@@ -54,27 +57,32 @@ const Home: React.FC = () => {
       setClientes(c);
       setFaturas(p);
 
-      const pagas = p.filter(f => f.status === 'pago');
-      const totalPagas = pagas.reduce((acc, f) => acc + (f.valor || 0), 0);
-      const totalLucro = pagas.reduce((acc, f) => acc + (f.valorLiquido || 0), 0);
+      const prevista = p.reduce((acc, f) => acc + (f.valor || 0), 0);
+      const recebida = p.filter(f => f.status === 'pago').reduce((acc, f) => acc + (f.valor || 0), 0);
+      const emAberto = p.filter(f => f.status !== 'pago').reduce((acc, f) => acc + (f.valor || 0), 0);
+      const lucro = p.filter(f => f.status === 'pago').reduce((acc, f) => acc + (f.valorLiquido || 0), 0);
+      const consumo = p.reduce((acc, f) => acc + (f.consumoKw || 0), 0);
 
-      const currentMonth = new Date();
-      const prevMonth = subMonths(currentMonth, 1);
-      const receitaAtual = pagas.filter(f => isSameMonth(new Date(f.data), currentMonth)).reduce((acc, f) => acc + (f.valor || 0), 0);
-      const receitaAnterior = pagas.filter(f => isSameMonth(new Date(f.data), prevMonth)).reduce((acc, f) => acc + (f.valor || 0), 0);
-      const crescimento = receitaAnterior > 0 ? ((receitaAtual - receitaAnterior) / receitaAnterior) * 100 : 0;
+      const inadimplentesIds = new Set(p.filter(f => f.status === 'atrasado').map(f => f.clienteId));
+      const totalInadimplentes = inadimplentesIds.size;
+      const taxaInadimplencia = c.length > 0 ? (totalInadimplentes / c.length) * 100 : 0;
 
-      const clientWithAtraso = new Set(p.filter(f => f.status === 'atrasado').map(f => f.clienteId));
+      const now = new Date();
+      const prev = subMonths(now, 1);
+      const mAtual = p.filter(f => f.status === 'pago' && isSameMonth(new Date(f.data), now)).reduce((acc, f) => acc + (f.valor || 0), 0);
+      const mAnterior = p.filter(f => f.status === 'pago' && isSameMonth(new Date(f.data), prev)).reduce((acc, f) => acc + (f.valor || 0), 0);
+      const crescimento = mAnterior > 0 ? ((mAtual - mAnterior) / mAnterior) * 100 : 0;
 
       setStats({
         totalClientes: c.length,
-        receitaTotal: totalPagas,
-        totalAtrasados: p.filter(f => f.status === 'atrasado').reduce((acc, f) => acc + (f.valor || 0), 0),
-        saldoTotal: c.reduce((acc, curr) => acc + (curr.saldoAtual || 0), 0),
-        activeClients: c.length - clientWithAtraso.size,
-        defaulterClients: clientWithAtraso.size,
-        lucroAcumulado: totalLucro,
-        crescimentoMensal: crescimento
+        receitaPrevista: prevista,
+        receitaRecebida: recebida,
+        receitaEmAberto: emAberto,
+        lucroReal: lucro,
+        totalInadimplentes,
+        taxaInadimplencia,
+        crescimentoMensal: crescimento,
+        consumoGeral: consumo
       });
 
       const last6Months = Array.from({ length: 6 }).map((_, i) => {
@@ -82,272 +90,184 @@ const Home: React.FC = () => {
         return {
           month: format(date, 'MMM', { locale: ptBR }),
           rawDate: date,
-          receita: 0,
+          prevista: 0,
+          recebida: 0,
           lucro: 0
         };
       }).reverse();
 
       p.forEach(f => {
-        const fDate = new Date(f.data);
-        const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, fDate));
-        if (monthIndex !== -1 && f.status === 'pago') {
-          last6Months[monthIndex].receita += (f.valorComDesconto || f.valor || 0);
-          last6Months[monthIndex].lucro += (f.valorLiquido || 0);
+        const monthIndex = last6Months.findIndex(m => isSameMonth(m.rawDate, new Date(f.data)));
+        if (monthIndex !== -1) {
+          last6Months[monthIndex].prevista += (f.valor || 0);
+          if (f.status === 'pago') {
+            last6Months[monthIndex].recebida += (f.valor || 0);
+            last6Months[monthIndex].lucro += (f.valorLiquido || 0);
+          }
         }
       });
 
       setChartData(last6Months);
-
     } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
+      console.error(error);
     } finally {
-      // Simular um delay pequeno para o skeleton ser visível
       setTimeout(() => setLoading(false), 500);
     }
   };
 
-  const statusData = [
-    { name: 'Ativos', value: stats.activeClients, color: '#28a745' },
-    { name: 'Inadimplentes', value: stats.defaulterClients, color: '#dc3545' },
-  ];
-
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1 }
-  };
-
-  const ModernCard = ({ title, value, icon, color, trend }: { title: string; value: string | number; icon: React.ReactNode; color: string; trend?: number }) => (
+  const ModernCard = ({ title, value, icon, color, trend, subValue }: { title: string; value: string; icon: any; color: string; trend?: number; subValue?: string }) => (
     <motion.div
-      variants={itemVariants}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      whileHover={{ y: -4 }}
       style={{
         padding: '1.5rem',
         backgroundColor: 'var(--surface-color)',
-        borderRadius: '16px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+        borderRadius: '20px',
+        border: '1px solid var(--border-color)',
         position: 'relative',
-        overflow: 'hidden',
-        border: '1px solid var(--border-color)'
+        overflow: 'hidden'
       }}
     >
-      <div style={{
-        position: 'absolute',
-        top: '-10px',
-        right: '-10px',
-        opacity: 0.1,
-        color: color,
-        transform: 'scale(3)'
-      }}>
-        {icon}
-      </div>
-
-      <div style={{ zIndex: 1 }}>
-        <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>{title}</h3>
-        <p style={{ fontSize: '1.75rem', fontWeight: '800', margin: 0 }}>{value}</p>
-
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ padding: '10px', backgroundColor: `${color}15`, borderRadius: '12px', color: color }}>
+          {React.createElement(icon, { size: 24 })}
+        </div>
         {trend !== undefined && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '0.5rem', fontSize: '0.8rem', color: trend >= 0 ? '#28a745' : '#dc3545' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: trend >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
             {trend >= 0 ? <MdTrendingUp /> : <MdTrendingDown />}
-            <span>{Math.abs(trend).toFixed(1)}% este mês</span>
+            {Math.abs(trend).toFixed(1)}%
           </div>
         )}
+      </div>
+      <div>
+        <h3 style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</h3>
+        <p style={{ margin: '5px 0', fontSize: '1.6rem', fontWeight: '800' }}>{value}</p>
+        {subValue && <small style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{subValue}</small>}
       </div>
     </motion.div>
   );
 
-  if (loading) return (
-    <div style={{ textAlign: 'left' }}>
-      <Skeleton className="skeleton-title" width={300} />
-      <Skeleton className="skeleton-text" width={400} />
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="skeleton-card" />)}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-        <Skeleton className="skeleton-chart" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <Skeleton height={250} borderRadius={24} />
-          <Skeleton height={100} borderRadius={24} />
-        </div>
-      </div>
-    </div>
-  );
+  if (loading) return <div style={{ padding: '2rem' }}><Skeleton height={400} borderRadius={24} /></div>;
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      style={{ textAlign: 'left' }}
-    >
+    <div style={{ textAlign: 'left' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.2rem' }}>Painel Executivo</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Visão estratégica do SolTracker em tempo real.</p>
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.2rem' }}>Dashboard Financeiro</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Gestão executiva e saúde financeira da operação.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-secondary" onClick={() => exportToPDF(faturas, clientes)} style={{ borderRadius: '10px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MdPictureAsPdf size={20} /> <span className="desktop-only">PDF</span>
-          </button>
-          <button className="btn btn-secondary" onClick={() => exportToExcel(faturas, clientes)} style={{ borderRadius: '10px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MdTableChart size={20} /> <span className="desktop-only">Excel</span>
-          </button>
+          <button className="btn btn-secondary" onClick={() => exportToPDF(faturas, clientes)} style={{ borderRadius: '12px' }}><MdPictureAsPdf size={20} /></button>
+          <button className="btn btn-secondary" onClick={() => exportToExcel(faturas, clientes)} style={{ borderRadius: '12px' }}><MdTableChart size={20} /></button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <ModernCard
-          title="Faturamento"
-          value={`R$ ${stats.receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={<MdAttachMoney />}
+          title="Receita Prevista"
+          value={`R$ ${stats.receitaPrevista.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={MdAccountBalanceWallet}
+          color="var(--solar-yellow)"
+          subValue="Total faturado no período"
+        />
+        <ModernCard
+          title="Recebido"
+          value={`R$ ${stats.receitaRecebida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={MdAttachMoney}
           color="#28a745"
           trend={stats.crescimentoMensal}
         />
         <ModernCard
+          title="Em Aberto"
+          value={`R$ ${stats.receitaEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={MdPendingActions}
+          color="#fdb813"
+          subValue="Aguardando pagamento"
+        />
+        <ModernCard
           title="Lucro Real"
-          value={`R$ ${stats.lucroAcumulado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={<MdTrendingUp />}
+          value={`R$ ${stats.lucroReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={MdTrendingUp}
           color="var(--solar-orange)"
-        />
-        <ModernCard
-          title="Carteira"
-          value={stats.totalClientes}
-          icon={<MdPeople />}
-          color="var(--solar-yellow)"
-        />
-        <ModernCard
-          title="Consumo Geral"
-          value={`${faturas.reduce((acc, f) => acc + (f.consumoKw || 0), 0).toFixed(0)} kW`}
-          icon={<MdElectricBolt />}
-          color="#007bff"
+          subValue="Após descontos e taxas"
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <ModernCard
+          title="Clientes Ativos"
+          value={stats.totalClientes.toString()}
+          icon={MdPeople}
+          color="#007bff"
+        />
+        <ModernCard
+          title="Inadimplentes"
+          value={stats.totalInadimplentes.toString()}
+          icon={MdMoneyOff}
+          color="#dc3545"
+          subValue="Faturas com atraso"
+        />
+        <ModernCard
+          title="Taxa de Inadimplência"
+          value={`${stats.taxaInadimplencia.toFixed(1)}%`}
+          icon={MdPercent}
+          color="#6c757d"
+        />
+        <ModernCard
+          title="Consumo Total"
+          value={`${stats.consumoGeral.toFixed(0)} kW`}
+          icon={MdElectricBolt}
+          color="var(--solar-yellow)"
+        />
+      </div>
 
-        <motion.div variants={itemVariants} style={{ backgroundColor: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Desempenho Financeiro</h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '4px 12px', backgroundColor: 'var(--bg-color)', borderRadius: '20px' }}>Últimos 6 meses</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '2rem' }}>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ marginBottom: '2rem', fontSize: '1.1rem' }}>Fluxo de Caixa Mensal (R$)</h3>
+          <div style={{ width: '100%', height: 350 }}>
+            <ResponsiveContainer>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'var(--surface-color)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }}
+                  formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`]}
+                />
+                <Legend />
+                <Bar name="Previsto" dataKey="prevista" fill="#e9ecef" radius={[4, 4, 0, 0]} />
+                <Bar name="Recebido" dataKey="recebida" fill="#28a745" radius={[4, 4, 0, 0]} />
+                <Bar name="Lucro Real" dataKey="lucro" fill="var(--solar-orange)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        </div>
+
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ marginBottom: '2rem', fontSize: '1.1rem' }}>Performance de Recebimento</h3>
           <div style={{ width: '100%', height: 350 }}>
             <ResponsiveContainer>
               <AreaChart data={chartData}>
                 <defs>
-                  <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--solar-yellow)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--solar-yellow)" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--solar-orange)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--solar-orange)" stopOpacity={0}/>
+                  <linearGradient id="colorRec" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#28a745" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#28a745" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
                 <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
                 <Tooltip
-                  cursor={{ stroke: 'var(--solar-yellow)', strokeWidth: 2 }}
-                  contentStyle={{ backgroundColor: 'var(--surface-color)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }}
-                  formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, '']}
+                  contentStyle={{ backgroundColor: 'var(--surface-color)', borderRadius: '12px', border: 'none' }}
+                  formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`]}
                 />
-                <Area name="Receita" type="monotone" dataKey="receita" stroke="var(--solar-yellow)" fillOpacity={1} fill="url(#colorReceita)" strokeWidth={3} />
-                <Area name="Lucro Líquido" type="monotone" dataKey="lucro" stroke="var(--solar-orange)" fillOpacity={1} fill="url(#colorLucro)" strokeWidth={3} />
+                <Area name="Recebido" type="monotone" dataKey="recebida" stroke="#28a745" fillOpacity={1} fill="url(#colorRec)" strokeWidth={3} />
+                <Area name="Previsto" type="monotone" dataKey="prevista" stroke="#6c757d" strokeDasharray="5 5" fill="none" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </motion.div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <motion.div variants={itemVariants} style={{ backgroundColor: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)', flex: 1 }}>
-            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>Saúde da Carteira</h3>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ width: '60%', height: 200 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={8}
-                      dataKey="value"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ width: '40%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {statusData.map(s => (
-                  <div key={s.name}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: s.color }}></div>
-                      {s.name}
-                    </div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{s.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants} style={{
-            backgroundColor: 'var(--sidebar-bg)',
-            color: 'white',
-            padding: '1.5rem',
-            borderRadius: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.5rem',
-            background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)'
-          }}>
-            <div style={{ backgroundColor: 'rgba(253, 184, 19, 0.1)', padding: '1rem', borderRadius: '16px' }}>
-              <MdSecurity size={32} color="var(--solar-yellow)" />
-            </div>
-            <div>
-              <h4 style={{ margin: 0, color: 'var(--solar-yellow)' }}>Proteção de Dados</h4>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', opacity: 0.8 }}>Sincronização automática com AES-256 ativa.</p>
-            </div>
-          </motion.div>
         </div>
-
       </div>
-
-      <motion.div variants={itemVariants} style={{ marginTop: '2rem', backgroundColor: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>Pendências Financeiras Críticas</h3>
-        {faturas.filter(f => f.status === 'atrasado').length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>🎉 Tudo em dia! Nenhuma fatura atrasada.</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {faturas.filter(f => f.status === 'atrasado').slice(0, 4).map(f => (
-              <div key={f.id} style={{ padding: '1rem', backgroundColor: 'var(--bg-color)', borderRadius: '12px', borderLeft: '4px solid #dc3545' }}>
-                <small style={{ color: 'var(--text-secondary)' }}>{clientes.find(c => c.id === f.clienteId)?.nome}</small>
-                <div style={{ fontWeight: 'bold' }}>R$ {f.valor.toFixed(2)}</div>
-                <small style={{ color: '#dc3545' }}>Vencido em {format(new Date(f.data), 'dd/MM')}</small>
-              </div>
-            ))}
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
+    </div>
   );
 };
 
