@@ -7,11 +7,17 @@ import { MdAdd, MdSearch, MdEdit, MdDelete, MdChevronLeft, MdChevronRight, MdSor
 import { subMonths, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Skeleton from '@/components/Skeleton';
+import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const Clientes: React.FC = () => {
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<number | null>(null);
 
   // Search and Sort State
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,16 +38,29 @@ const Clientes: React.FC = () => {
       setClientes(data);
     } catch (error) {
       console.error(error);
+      toast.error('Erro ao carregar clientes');
     } finally {
-      // Pequeno delay para o skeleton ser visível
       setTimeout(() => setLoading(false), 500);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
-      await ClienteService.delete(id);
-      loadClientes();
+  const openDeleteDialog = (id: number) => {
+    setClientToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (clientToDelete) {
+      try {
+        await ClienteService.delete(clientToDelete);
+        toast.success('Cliente removido com sucesso');
+        loadClientes();
+      } catch (error) {
+        toast.error('Falha ao remover cliente');
+      } finally {
+        setIsDeleteDialogOpen(false);
+        setClientToDelete(null);
+      }
     }
   };
 
@@ -54,7 +73,6 @@ const Clientes: React.FC = () => {
     }
   };
 
-  // Filtered and Sorted Data
   const filteredAndSortedClientes = useMemo(() => {
     return clientes
       .filter(c =>
@@ -73,7 +91,6 @@ const Clientes: React.FC = () => {
       });
   }, [clientes, searchTerm, sortField, sortDirection]);
 
-  // Paginated Data
   const totalPages = Math.ceil(filteredAndSortedClientes.length / itemsPerPage);
   const paginatedClientes = filteredAndSortedClientes.slice(
     (currentPage - 1) * itemsPerPage,
@@ -82,6 +99,16 @@ const Clientes: React.FC = () => {
 
   return (
     <div style={{ textAlign: 'left' }}>
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="Excluir Cliente?"
+        message="Esta ação é permanente e removerá todos os dados e faturas deste cliente."
+        confirmText="Sim, Excluir"
+        type="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteDialogOpen(false)}
+      />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1>Clientes</h1>
@@ -91,43 +118,49 @@ const Clientes: React.FC = () => {
           <button
             className="btn btn-secondary"
             onClick={async () => {
-              const testData: any[] = [
-                { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() },
-                { nome: 'Maria Painel', telefone: '(21) 97777-6666', documento: '987.654.321-09', email: 'maria@paineis.com', cidade: 'Rio de Janeiro', distribuidora: 'Light', consumoMedio: 450, saldoAtual: 50, valorMensal: 200, percentualDesconto: 15, dataInicio: new Date(), dataCadastro: new Date() },
-                { nome: 'Carlos Energia', telefone: '(31) 96666-5555', documento: '456.123.789-05', email: 'carlos@energia.com', cidade: 'Belo Horizonte', distribuidora: 'Cemig', consumoMedio: 280, saldoAtual: -20, valorMensal: 120, percentualDesconto: 10, dataInicio: new Date(), dataCadastro: new Date() },
-                { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, percentualDesconto: 25, dataInicio: new Date(), dataCadastro: new Date() },
-                { nome: 'Ricardo Watts', telefone: '(51) 94444-3333', documento: '159.357.258-07', email: 'ricardo@watts.com', cidade: 'Porto Alegre', distribuidora: 'CEEE', consumoMedio: 400, saldoAtual: 0, valorMensal: 180, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() }
-              ];
+              const promise = (async () => {
+                const testData: any[] = [
+                  { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'Maria Painel', telefone: '(21) 97777-6666', documento: '987.654.321-09', email: 'maria@paineis.com', cidade: 'Rio de Janeiro', distribuidora: 'Light', consumoMedio: 450, saldoAtual: 50, valorMensal: 200, percentualDesconto: 15, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'Carlos Energia', telefone: '(31) 96666-5555', documento: '456.123.789-05', email: 'carlos@energia.com', cidade: 'Belo Horizonte', distribuidora: 'Cemig', consumoMedio: 280, saldoAtual: -20, valorMensal: 120, percentualDesconto: 10, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, percentualDesconto: 25, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'Ricardo Watts', telefone: '(51) 94444-3333', documento: '159.357.258-07', email: 'ricardo@watts.com', cidade: 'Porto Alegre', distribuidora: 'CEEE', consumoMedio: 400, saldoAtual: 0, valorMensal: 180, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() }
+                ];
 
-              for (const item of testData) {
-                const clientId = await ClienteService.create(item);
+                for (const item of testData) {
+                  const clientId = await ClienteService.create(item);
+                  for (let i = 0; i < 6; i++) {
+                    const date = subMonths(startOfMonth(new Date()), i);
+                    const bruto = 200 + (Math.random() * 300);
+                    const taxa = 50 + (Math.random() * 50);
+                    const desc = item.percentualDesconto;
+                    const vDesc = bruto * (1 - (desc / 100));
+                    const vLiq = vDesc - taxa;
 
-                for (let i = 0; i < 6; i++) {
-                  const date = subMonths(startOfMonth(new Date()), i);
-                  const bruto = 200 + (Math.random() * 300);
-                  const taxa = 50 + (Math.random() * 50);
-                  const desc = item.percentualDesconto;
-                  const vDesc = bruto * (1 - (desc / 100));
-                  const vLiq = vDesc - taxa;
-
-                  await FinanceiroService.create({
-                    clienteId: clientId as number,
-                    referenciaMes: format(date, "MMMM'/'yyyy", { locale: ptBR }),
-                    consumoKw: 100 + (Math.random() * 400),
-                    valorTotalBruto: bruto,
-                    valorTaxaUso: taxa,
-                    percentualDescontoAplicado: desc,
-                    valorComDesconto: vDesc,
-                    valorLiquido: vLiq,
-                    valor: vDesc,
-                    data: date,
-                    status: i > 0 ? 'pago' : 'pendente',
-                    metodo: 'Pix'
-                  } as any);
+                    await FinanceiroService.create({
+                      clienteId: clientId as number,
+                      referenciaMes: format(date, "MMMM'/'yyyy", { locale: ptBR }),
+                      consumoKw: 100 + (Math.random() * 400),
+                      valorTotalBruto: bruto,
+                      valorTaxaUso: taxa,
+                      percentualDescontoAplicado: desc,
+                      valorComDesconto: vDesc,
+                      valorLiquido: vLiq,
+                      valor: vDesc,
+                      data: date,
+                      status: i > 0 ? 'pago' : 'pendente',
+                      metodo: 'Pix'
+                    } as any);
+                  }
                 }
-              }
-              alert('Dados de Clientes e Financeiro gerados com sucesso!');
-              loadClientes();
+                loadClientes();
+              })();
+
+              toast.promise(promise, {
+                loading: 'Gerando dados...',
+                success: 'Dados gerados com sucesso!',
+                error: 'Falha ao gerar dados.',
+              });
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
@@ -230,7 +263,7 @@ const Clientes: React.FC = () => {
                         <MdEdit size={20} />
                       </button>
                       <button
-                        onClick={() => cliente.id && handleDelete(cliente.id)}
+                        onClick={() => cliente.id && openDeleteDialog(cliente.id)}
                         style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer' }}
                         title="Excluir"
                       >
