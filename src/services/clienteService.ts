@@ -1,8 +1,11 @@
 import { db, type Cliente } from './db';
+import { SyncService } from './syncService';
 
 export const ClienteService = {
   async create(cliente: Cliente) {
-    return await db.clientes.add(cliente);
+    const id = await db.clientes.add(cliente);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return id;
   },
 
   async getAll() {
@@ -14,10 +17,14 @@ export const ClienteService = {
   },
 
   async update(id: number, changes: Partial<Cliente>) {
-    return await db.clientes.update(id, changes);
+    const result = await db.clientes.update(id, changes);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   },
 
   async delete(id: number) {
-    return await db.clientes.delete(id);
+    const result = await db.clientes.delete(id);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   }
 };

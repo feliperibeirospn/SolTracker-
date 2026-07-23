@@ -1,8 +1,11 @@
 import { db, type Pagamento } from './db';
+import { SyncService } from './syncService';
 
 export const FinanceiroService = {
   async create(pagamento: Pagamento) {
-    return await db.pagamentos.add(pagamento);
+    const id = await db.pagamentos.add(pagamento);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return id;
   },
 
   async getAll() {
@@ -18,10 +21,14 @@ export const FinanceiroService = {
   },
 
   async update(id: number, changes: Partial<Pagamento>) {
-    return await db.pagamentos.update(id, changes);
+    const result = await db.pagamentos.update(id, changes);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   },
 
   async delete(id: number) {
-    return await db.pagamentos.delete(id);
+    const result = await db.pagamentos.delete(id);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   }
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { CloudBackupService } from '@/services/cloudBackupService';
 import { MdLock, MdVpnKey, MdWbSunny, MdEmail, MdPersonAdd, MdCloudDownload } from 'react-icons/md';
 import '@/styles/forms.css';
 
@@ -7,13 +8,14 @@ const Login: React.FC = () => {
   const { masterHash, userEmail: storedEmail, setMasterPassword, login } = useAuth();
 
   // States
-  const [view, setView] = useState<'selection' | 'create' | 'login'>(masterHash ? 'login' : 'selection');
+  const [view, setView] = useState<'selection' | 'create' | 'login' | 'restore'>(masterHash ? 'login' : 'selection');
   const [email, setEmail] = useState(storedEmail || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -32,10 +34,25 @@ const Login: React.FC = () => {
         return;
       }
       setMasterPassword(email, password);
-    } else {
+    } else if (view === 'login') {
       const success = login(email, password);
       if (!success) {
         setError('Email ou Senha incorretos.');
+      }
+    } else if (view === 'restore') {
+      setLoading(true);
+      try {
+        // Tenta baixar e descriptografar o backup da nuvem
+        const success = await CloudBackupService.getFromCloud(email, password);
+        if (success) {
+          // Se o backup foi restaurado, agora configuramos a senha localmente
+          setMasterPassword(email, password);
+          alert('Backup restaurado com sucesso! Bem-vindo de volta.');
+        }
+      } catch (err: any) {
+        setError('Falha ao restaurar: Verifique email/senha ou se existe backup na nuvem.');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -56,7 +73,7 @@ const Login: React.FC = () => {
           <p style={{ color: 'var(--text-secondary)' }}>Sistema de Gestão Solar</p>
         </div>
 
-        {/* 1. SELECTION VIEW: Novo Usuário ou Login */}
+        {/* 1. SELECTION VIEW */}
         {view === 'selection' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>Como deseja começar?</p>
@@ -64,34 +81,34 @@ const Login: React.FC = () => {
             <button
               className="btn btn-primary"
               onClick={() => setView('create')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '1.5rem' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '1.2rem' }}
             >
               <MdPersonAdd size={24} />
               <div style={{ textAlign: 'left' }}>
-                <strong>Criar Novo Acesso Local</strong>
-                <br /><small style={{ fontSize: '0.7rem', opacity: 0.9 }}>Vou começar um banco de dados do zero.</small>
+                <strong>Novo Acesso</strong>
+                <br /><small style={{ fontSize: '0.7rem', opacity: 0.9 }}>Criar novo banco de dados local.</small>
               </div>
             </button>
 
             <button
               className="btn btn-secondary"
-              onClick={() => setView('login')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '1.5rem' }}
+              onClick={() => setView('restore')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '1.2rem' }}
             >
               <MdCloudDownload size={24} />
               <div style={{ textAlign: 'left' }}>
-                <strong>Já possuo um acesso</strong>
-                <br /><small style={{ fontSize: '0.7rem' }}>Vou entrar ou restaurar um backup.</small>
+                <strong>Resgatar da Nuvem</strong>
+                <br /><small style={{ fontSize: '0.7rem' }}>Entrar e baixar dados existentes.</small>
               </div>
             </button>
           </div>
         )}
 
-        {/* 2. CREATE / LOGIN FORM VIEW */}
-        {(view === 'create' || view === 'login') && (
+        {/* 2. FORMS VIEW */}
+        {(view === 'create' || view === 'login' || view === 'restore') && (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-              {view === 'create' ? 'Configurar Credenciais' : 'Entrar no Sistema'}
+              {view === 'create' ? 'Configurar Credenciais' : view === 'restore' ? 'Resgatar Backup' : 'Entrar no Sistema'}
             </h2>
 
             <div className="form-group">
@@ -113,7 +130,7 @@ const Login: React.FC = () => {
                 <MdLock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                 <input
                   type="password"
-                  placeholder={view === 'create' ? "Crie sua senha mestre" : "Sua senha mestre"}
+                  placeholder="Sua senha mestre"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={{ paddingLeft: '40px', width: '100%' }}
@@ -140,8 +157,8 @@ const Login: React.FC = () => {
 
             {error && <p style={{ color: '#dc3545', fontSize: '0.85rem', margin: 0 }}>{error}</p>}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-              {view === 'create' ? 'Finalizar e Entrar' : 'Acessar'}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
+              {loading ? 'Processando...' : view === 'create' ? 'Finalizar e Entrar' : view === 'restore' ? 'Baixar e Acessar' : 'Acessar'}
             </button>
 
             <button
@@ -156,8 +173,8 @@ const Login: React.FC = () => {
         )}
 
         <p style={{ marginTop: '2rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {view === 'create'
-            ? 'Seus dados serão criptografados com esta senha.'
+          {view === 'restore'
+            ? 'Seus dados serão baixados da nuvem e descriptografados localmente.'
             : 'Sua privacidade é nossa prioridade.'}
         </p>
       </div>

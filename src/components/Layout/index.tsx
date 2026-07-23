@@ -11,12 +11,16 @@ import {
   MdDarkMode,
   MdLightMode,
   MdClose,
-  MdFileUpload
+  MdFileUpload,
+  MdCloudSync,
+  MdCloudDone
 } from 'react-icons/md';
 import '@/styles/layout.css';
+import { useSync } from '@/hooks/useSync';
 
 const Layout: React.FC = () => {
   const location = useLocation();
+  const { isOnline } = useSync();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
@@ -33,7 +37,6 @@ const Layout: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Close sidebar on route change (mobile)
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location]);
@@ -43,10 +46,8 @@ const Layout: React.FC = () => {
 
   return (
     <div className={`layout-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-      {/* Overlay for mobile */}
       <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
 
-      {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <span>SolTracker</span>
@@ -86,14 +87,17 @@ const Layout: React.FC = () => {
         </nav>
       </aside>
 
-      {/* Main Content Area */}
       <div className="main-content">
-        {/* Topbar */}
         <header className="topbar">
-          <div className="topbar-left">
+          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button className="hamburger-btn" onClick={toggleSidebar}>
               <MdMenu size={24} />
             </button>
+            {/* Indicador de Sync no Topbar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: isOnline ? '#28a745' : '#dc3545' }}>
+              {isOnline ? <MdCloudDone size={18} /> : <MdCloudSync size={18} />}
+              <span className="desktop-only">{isOnline ? 'Sincronizado' : 'Offline'}</span>
+            </div>
           </div>
 
           <div className="user-profile">
@@ -116,12 +120,10 @@ const Layout: React.FC = () => {
           </div>
         </header>
 
-        {/* Content */}
         <main className="content-area">
           <Outlet />
         </main>
 
-        {/* Footer */}
         <footer className="footer">
           &copy; {new Date().getFullYear()} SolTracker - Rastreamento Solar
         </footer>

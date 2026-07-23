@@ -1,8 +1,11 @@
 import { db, type Historico } from './db';
+import { SyncService } from './syncService';
 
 export const HistoricoService = {
   async create(historico: Historico) {
-    return await db.historicos.add(historico);
+    const id = await db.historicos.add(historico);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return id;
   },
 
   async getAll() {
@@ -14,14 +17,20 @@ export const HistoricoService = {
   },
 
   async update(id: number, changes: Partial<Historico>) {
-    return await db.historicos.update(id, changes);
+    const result = await db.historicos.update(id, changes);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   },
 
   async delete(id: number) {
-    return await db.historicos.delete(id);
+    const result = await db.historicos.delete(id);
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   },
 
   async clearAll() {
-    return await db.historicos.clear();
+    const result = await db.historicos.clear();
+    SyncService.triggerAutoSync(); // Auto-sync
+    return result;
   }
 };

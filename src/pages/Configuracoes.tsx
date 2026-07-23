@@ -5,7 +5,8 @@ import { CloudBackupService } from '@/services/cloudBackupService';
 import { GitHubService } from '@/services/githubService';
 import { useSync } from '@/hooks/useSync';
 import {
-  MdBackup, MdCloudDone, MdWifi, MdWifiOff
+  MdBackup, MdCloudDownload, MdCloudUpload, MdWarning,
+  MdCloudDone, MdDeleteForever, MdWifi, MdWifiOff
 } from 'react-icons/md';
 import { FaGithub } from 'react-icons/fa';
 import '@/styles/forms.css';
@@ -24,8 +25,7 @@ const Configuracoes: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('gh_token', ghToken);
     localStorage.setItem('gh_repo', ghRepo);
-    localStorage.setItem('gh_path', ghPath);
-  }, [ghToken, ghRepo, ghPath]);
+  }, [ghToken, ghRepo]);
 
   const handleExport = async () => {
     if (!password) { alert('Informe sua senha mestre.'); return; }
@@ -63,6 +63,40 @@ const Configuracoes: React.FC = () => {
     finally { setLoading(false); }
   };
 
+  const handleCloudRestore = async () => {
+    if (!password || !userEmail) {
+      alert('Sua senha mestre e email são necessários para descriptografar os dados da nuvem.');
+      return;
+    }
+    if (!window.confirm('Deseja baixar e restaurar os dados da nuvem? Isso apagará os dados atuais do navegador.')) return;
+
+    setLoading(true);
+    try {
+      await CloudBackupService.getFromCloud(userEmail, password);
+      alert('Dados da nuvem restaurados com sucesso!');
+      window.location.reload();
+    } catch (error) {
+      alert('Falha ao restaurar da nuvem. Verifique a senha ou se existe um backup salvo para este email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloudDelete = async () => {
+    if (!password || !userEmail) return;
+    if (!window.confirm('Tem certeza que deseja apagar permanentemente seu backup da nuvem?')) return;
+
+    setLoading(true);
+    try {
+      await CloudBackupService.deleteFromCloud(userEmail, password);
+      alert('Backup removido da nuvem.');
+    } catch (error) {
+      alert('Erro ao remover backup da nuvem.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGitHubSave = async () => {
     if (!password || !ghToken || !ghRepo) {
       alert('Preencha a senha mestre e as configurações do GitHub (Token e Repo).');
@@ -84,7 +118,7 @@ const Configuracoes: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1>Configurações</h1>
-          <p>Email: <strong>{userEmail}</strong></p>
+          <p>Email vinculado: <strong>{userEmail}</strong></p>
         </div>
         <div style={{
           display: 'flex',
@@ -102,57 +136,69 @@ const Configuracoes: React.FC = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><MdBackup /> Backup Local</h3>
-            <button className="btn btn-primary" onClick={handleExport} disabled={loading} style={{ width: '100%' }}>Exportar .sol</button>
-            <label className="btn btn-secondary" style={{ display: 'block', textAlign: 'center', marginTop: '0.5rem', cursor: 'pointer' }}>
-              Importar .sol
-              <input type="file" accept=".sol" onChange={handleImport} style={{ display: 'none' }} />
-            </label>
-          </div>
+        {/* Backup Local */}
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><MdBackup /> Backup Local</h3>
+          <button className="btn btn-primary" onClick={handleExport} disabled={loading} style={{ width: '100%', marginBottom: '0.5rem' }}>
+            <MdCloudDownload size={20} style={{marginRight: '8px'}}/> Exportar .sol
+          </button>
+          <label className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
+            <MdCloudUpload size={20} style={{marginRight: '8px'}}/> Importar .sol
+            <input type="file" accept=".sol" onChange={handleImport} style={{ display: 'none' }} />
+          </label>
+        </div>
 
-          <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><MdCloudDone /> Cloudflare KV</h3>
+        {/* Cloud Backup (Cloudflare) */}
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><MdCloudDone /> Cloudflare KV</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <button className="btn btn-primary" onClick={handleCloudSave} disabled={loading || !isOnline} style={{ width: '100%', backgroundColor: 'var(--solar-yellow)', color: '#000' }}>
-              Salvar na Nuvem
+              <MdCloudUpload size={18} style={{marginRight: '8px'}}/> Salvar na Nuvem
+            </button>
+            <button className="btn btn-secondary" onClick={handleCloudRestore} disabled={loading || !isOnline} style={{ width: '100%' }}>
+              <MdCloudDownload size={18} style={{marginRight: '8px'}}/> Sincronizar da Nuvem
+            </button>
+            <button className="btn btn-secondary" onClick={handleCloudDelete} disabled={loading || !isOnline} style={{ width: '100%', color: '#dc3545', borderColor: '#dc3545' }}>
+              <MdDeleteForever size={18} style={{marginRight: '8px'}}/> Apagar Nuvem
             </button>
           </div>
         </div>
 
+        {/* GitHub Integration */}
         <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><FaGithub /> Conectar GitHub</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}><FaGithub /> GitHub (Privado)</h3>
           <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label>Personal Access Token</label>
-            <input type="password" value={ghToken} onChange={(e) => setGhToken(e.target.value)} placeholder="ghp_xxx..." />
+            <label>Token</label>
+            <input type="password" value={ghToken} onChange={(e) => setGhToken(e.target.value)} placeholder="ghp_xxx..." style={{fontSize: '0.8rem'}} />
           </div>
           <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label>Repositório (usuario/repo)</label>
-            <input type="text" value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} placeholder="meu-usuario/meu-repo-privado" />
+            <label>Repo</label>
+            <input type="text" value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} placeholder="user/repo" style={{fontSize: '0.8rem'}} />
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleGitHubSave}
-            disabled={loading || !isOnline}
-            style={{ width: '100%', backgroundColor: '#24292e' }}
-          >
+          <button className="btn btn-primary" onClick={handleGitHubSave} disabled={loading || !isOnline} style={{ width: '100%', backgroundColor: '#24292e' }}>
             Enviar backup.enc
           </button>
-          <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '1rem' }}>
-            * O arquivo será salvo criptografado. Use um repositório privado.
-          </small>
         </div>
       </div>
 
       <div style={{ marginTop: '2rem', maxWidth: '600px' }}>
         <div className="form-group">
-          <label>Senha Mestre para Criptografia</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Confirme sua senha" />
+          <label>Senha Mestre de Segurança</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Confirme sua senha para agir" />
         </div>
 
-        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(253, 184, 19, 0.1)', borderRadius: '8px', border: '1px solid var(--solar-yellow)' }}>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>
-            <strong>PWA Offline:</strong> O SolTracker funciona sem internet. Suas alterações são salvas localmente e você pode sincronizar com a nuvem quando estiver online novamente.
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1rem',
+          backgroundColor: 'rgba(220, 53, 69, 0.05)',
+          borderRadius: '8px',
+          border: '1px solid #dc3545',
+          display: 'flex',
+          gap: '12px'
+        }}>
+          <MdWarning color="#dc3545" size={24} style={{ flexShrink: 0 }} />
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#dc3545' }}>
+            <strong>Cuidado:</strong> Ações de restauração substituem todos os dados locais. Sempre verifique sua senha mestre.
           </p>
         </div>
       </div>
