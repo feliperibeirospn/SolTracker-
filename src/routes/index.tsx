@@ -11,10 +11,10 @@ import Relatorios from '../pages/Relatorios';
 import Importacao from '../pages/Importacao';
 import Configuracoes from '../pages/Configuracoes';
 import PortalCliente from '../pages/PortalCliente';
+import CalendarioFinanceiro from '../pages/CalendarioFinanceiro';
 import NotFound from '../pages/NotFound';
 import { useAuth } from '../hooks/useAuth';
 
-// Componente para proteger rotas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/" />;
@@ -24,10 +24,8 @@ const AppRoutes = () => {
   return (
     <HashRouter>
       <Routes>
-        {/* Rota Pública do Portal do Cliente (Totalmente isolada) */}
         <Route path="/p/:hash" element={<PortalCliente />} />
 
-        {/* Rotas Privadas (Envolvidas pelo Layout do Sistema) */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
@@ -35,6 +33,7 @@ const AppRoutes = () => {
           <Route path="clientes/:id" element={<PrivateRoute><DetalhesCliente /></PrivateRoute>} />
           <Route path="clientes/editar/:id" element={<PrivateRoute><EditarCliente /></PrivateRoute>} />
           <Route path="financeiro" element={<PrivateRoute><Financeiro /></PrivateRoute>} />
+          <Route path="calendario" element={<PrivateRoute><CalendarioFinanceiro /></PrivateRoute>} />
           <Route path="historico" element={<PrivateRoute><Historico /></PrivateRoute>} />
           <Route path="relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />
           <Route path="importacao" element={<PrivateRoute><Importacao /></PrivateRoute>} />

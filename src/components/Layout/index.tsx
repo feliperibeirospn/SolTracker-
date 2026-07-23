@@ -14,7 +14,8 @@ import {
   MdFileUpload,
   MdCloudSync,
   MdCloudDone,
-  MdSearch
+  MdSearch,
+  MdCalendarMonth
 } from 'react-icons/md';
 import '@/styles/layout.css';
 import { useSync } from '@/hooks/useSync';
@@ -24,7 +25,7 @@ import CommandPalette from '../CommandPalette';
 const Layout: React.FC = () => {
   const location = useLocation();
   const { isOnline } = useSync();
-  useNotifications(); // Ativa as notificações ao carregar o layout principal
+  useNotifications();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
@@ -62,7 +63,6 @@ const Layout: React.FC = () => {
           </button>
         </div>
 
-        {/* Quick Search Shortcut Indicator in Sidebar */}
         <div
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
           style={{
@@ -79,7 +79,6 @@ const Layout: React.FC = () => {
         >
           <MdSearch size={20} color="var(--solar-yellow)" />
           <span className="desktop-only">Busca Rápida</span>
-          <div className="desktop-only" style={{ marginLeft: 'auto', padding: '2px 6px', backgroundColor: 'var(--bg-color)', borderRadius: '4px', fontSize: '0.65rem' }}>Ctrl K</div>
         </div>
 
         <nav className="sidebar-menu">
@@ -94,6 +93,10 @@ const Layout: React.FC = () => {
           <NavLink to="/financeiro" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
             <MdAttachMoney size={24} />
             <span>Financeiro</span>
+          </NavLink>
+          <NavLink to="/calendario" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
+            <MdCalendarMonth size={24} />
+            <span>Calendário</span>
           </NavLink>
           <NavLink to="/historico" className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
             <MdHistory size={24} />

@@ -1,0 +1,146 @@
+/* Custom Calendar UI for SolTracker */
+.react-calendar {
+  width: 100% !important;
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+  font-family: inherit !important;
+  border-radius: 24px !important;
+  padding: 1.5rem !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
+}
+
+/* Fix text contrast for all buttons and labels */
+.react-calendar button {
+  color: var(--text-primary) !important;
+}
+
+.react-calendar__navigation {
+  margin-bottom: 1.5rem !important;
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.react-calendar__navigation button {
+  min-width: 44px !important;
+  background: var(--bg-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+  font-weight: 800 !important;
+  transition: all 0.2s !important;
+}
+
+.react-calendar__navigation button:enabled:hover {
+  background-color: var(--solar-orange) !important;
+  color: white !important;
+  border-color: var(--solar-orange) !important;
+}
+
+.react-calendar__month-view__weekdays {
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  color: var(--solar-orange) !important;
+}
+
+/* Weekday labels contrast */
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none !important;
+  color: var(--solar-orange) !important;
+}
+
+.react-calendar__month-view__days {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.react-calendar__tile {
+  height: 100px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 10px !important;
+  background: var(--surface-color) !important;
+  position: relative !important;
+  transition: background 0.2s !important;
+  color: var(--text-primary) !important;
+}
+
+.react-calendar__tile abbr {
+  color: var(--text-primary) !important;
+  z-index: 1;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: var(--text-secondary) !important;
+  opacity: 0.5;
+}
+
+.react-calendar__tile:enabled:hover {
+  background-color: var(--bg-color) !important;
+}
+
+.react-calendar__tile--now {
+  background: rgba(253, 184, 19, 0.15) !important;
+}
+
+.react-calendar__tile--now abbr {
+  color: var(--solar-yellow) !important;
+  font-weight: 900 !important;
+}
+
+.react-calendar__tile--active {
+  background: var(--solar-orange) !important;
+  color: white !important;
+}
+
+.react-calendar__tile--active abbr {
+  color: white !important;
+}
+
+.react-calendar__tile--active:enabled:hover, .react-calendar__tile--active:enabled:focus {
+  background: var(--solar-orange) !important;
+}
+
+/* Day Indicator Dots */
+.calendar-day-dot-container {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: auto;
+  padding-bottom: 5px;
+}
+
+.calendar-day-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-pago { background-color: #28a745; }
+.dot-pendente { background-color: #fdb813; }
+.dot-atrasado { background-color: #dc3545; }
+
+/* Desktop Item Indicator */
+.desktop-preview {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+@media (max-width: 768px) {
+  .react-calendar {
+    padding: 0.5rem !important;
+  }
+  .react-calendar__tile {
+    height: 70px !important;
+    padding: 5px !important;
+  }
+  .desktop-preview {
+    display: none;
+  }
+}
