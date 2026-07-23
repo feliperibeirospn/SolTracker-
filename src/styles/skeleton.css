@@ -1,0 +1,47 @@
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-color) 25%,
+    var(--border-color) 50%,
+    var(--surface-color) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: 16px;
+}
+
+.skeleton-chart {
+  height: 400px;
+  border-radius: 24px;
+}
+
+.skeleton-row {
+  height: 60px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 32px;
+  width: 200px;
+  margin-bottom: 1rem;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 300px;
+  margin-bottom: 2rem;
+}

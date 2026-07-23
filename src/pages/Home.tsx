@@ -14,6 +14,7 @@ import { format, startOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { exportToPDF, exportToExcel } from '@/utils/exportUtils';
 import { motion } from 'framer-motion';
+import Skeleton from '@/components/Skeleton';
 
 interface DashboardStats {
   totalClientes: number;
@@ -100,7 +101,8 @@ const Home: React.FC = () => {
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
-      setLoading(false);
+      // Simular um delay pequeno para o skeleton ser visível
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
@@ -165,7 +167,24 @@ const Home: React.FC = () => {
     </motion.div>
   );
 
-  if (loading) return <p>Carregando dashboard moderno...</p>;
+  if (loading) return (
+    <div style={{ textAlign: 'left' }}>
+      <Skeleton className="skeleton-title" width={300} />
+      <Skeleton className="skeleton-text" width={400} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="skeleton-card" />)}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+        <Skeleton className="skeleton-chart" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <Skeleton height={250} borderRadius={24} />
+          <Skeleton height={100} borderRadius={24} />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <motion.div

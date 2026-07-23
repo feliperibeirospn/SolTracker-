@@ -6,6 +6,7 @@ import { type Cliente } from '@/services/db';
 import { MdAdd, MdSearch, MdEdit, MdDelete, MdChevronLeft, MdChevronRight, MdSort } from 'react-icons/md';
 import { subMonths, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Skeleton from '@/components/Skeleton';
 
 const Clientes: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,8 @@ const Clientes: React.FC = () => {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      // Pequeno delay para o skeleton ser visível
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
@@ -100,7 +102,6 @@ const Clientes: React.FC = () => {
               for (const item of testData) {
                 const clientId = await ClienteService.create(item);
 
-                // Gerar faturas para os últimos 6 meses a partir de hoje
                 for (let i = 0; i < 6; i++) {
                   const date = subMonths(startOfMonth(new Date()), i);
                   const bruto = 200 + (Math.random() * 300);
@@ -120,17 +121,17 @@ const Clientes: React.FC = () => {
                     valorLiquido: vLiq,
                     valor: vDesc,
                     data: date,
-                    status: i > 0 ? 'pago' : 'pendente', // Mês atual pendente, outros pagos
+                    status: i > 0 ? 'pago' : 'pendente',
                     metodo: 'Pix'
                   } as any);
                 }
               }
-              alert('Dados de Clientes e Financeiro gerados com sucesso para os últimos 6 meses!');
+              alert('Dados de Clientes e Financeiro gerados com sucesso!');
               loadClientes();
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            Gerar Dados de Teste (Completo)
+            Gerar Dados de Teste
           </button>
           <button
             className="btn btn-primary"
@@ -142,7 +143,6 @@ const Clientes: React.FC = () => {
         </div>
       </div>
 
-      {/* Toolbar: Search and Info */}
       <div style={{
         display: 'flex',
         gap: '1rem',
@@ -182,7 +182,9 @@ const Clientes: React.FC = () => {
       </div>
 
       {loading ? (
-        <p>Carregando clientes...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="skeleton-row" borderRadius={8} />)}
+        </div>
       ) : clientes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--surface-color)', borderRadius: '8px' }}>
           <p style={{ color: 'var(--text-secondary)' }}>Nenhum cliente cadastrado ainda.</p>
@@ -215,6 +217,12 @@ const Clientes: React.FC = () => {
                     <td style={{ padding: '1rem' }}>{cliente.consumoMedio} kWh</td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                       <button
+                        onClick={() => navigate(`/clientes/${cliente.id}`)}
+                        style={{ background: 'none', border: 'none', color: 'var(--solar-yellow)', cursor: 'pointer', marginRight: '10px', fontWeight: 'bold' }}
+                      >
+                        Ver
+                      </button>
+                      <button
                         onClick={() => navigate(`/clientes/editar/${cliente.id}`)}
                         style={{ background: 'none', border: 'none', color: 'var(--solar-orange)', cursor: 'pointer', marginRight: '10px' }}
                         title="Editar"
@@ -235,7 +243,6 @@ const Clientes: React.FC = () => {
             </table>
           </div>
 
-          {/* Pagination Controls */}
           <div style={{
             marginTop: '1.5rem',
             display: 'flex',
