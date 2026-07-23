@@ -1,10 +1,13 @@
 import { db, type Cliente } from './db';
 import { SyncService } from './syncService';
 import { AuditService } from './auditService';
+import { nanoid } from 'nanoid';
 
 export const ClienteService = {
   async create(cliente: Cliente) {
-    const id = await db.clientes.add(cliente);
+    // Gera um hash único de 12 caracteres para o portal público
+    const publicHash = nanoid(12);
+    const id = await db.clientes.add({ ...cliente, publicHash });
     await AuditService.log('usuario', 'CRIAR', 'Cliente', `Cliente "${cliente.nome}" cadastrado.`);
     SyncService.triggerAutoSync();
     return id;
@@ -16,6 +19,10 @@ export const ClienteService = {
 
   async getById(id: number) {
     return await db.clientes.get(id);
+  },
+
+  async getByHash(hash: string) {
+    return await db.clientes.where('publicHash').equals(hash).first();
   },
 
   async update(id: number, changes: Partial<Cliente>) {

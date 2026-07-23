@@ -16,6 +16,7 @@ export interface Cliente {
   observacoes?: string;
   dataCadastro: Date;
   isFavorito?: boolean;
+  publicHash?: string; // Novo: Link único para o portal do cliente
 }
 
 export interface Pagamento {
@@ -40,9 +41,9 @@ export interface Historico {
   data: Date;
   descricao: string;
   usuarioId?: string;
-  entidade?: string; // Ex: 'Cliente', 'Pagamento'
+  entidade?: string;
   acao?: 'CRIAR' | 'EDITAR' | 'DELETAR' | 'LOGIN' | 'BACKUP';
-  detalhes?: string; // JSON string com diff ou detalhes extras
+  detalhes?: string;
 }
 
 export interface Configuracao {
@@ -59,8 +60,8 @@ export class SolarTrackerDB extends Dexie {
   constructor() {
     super('solarTracker');
 
-    this.version(6).stores({
-      clientes: '++id, nome, email, documento, cidade, isFavorito',
+    this.version(7).stores({
+      clientes: '++id, nome, email, documento, cidade, isFavorito, publicHash',
       pagamentos: '++id, clienteId, data, status, referenciaMes',
       historicos: '++id, tipo, data, acao, entidade',
       configuracoes: 'chave'

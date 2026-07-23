@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Clientes from '../pages/Clientes';
@@ -10,27 +10,39 @@ import Historico from '../pages/Historico';
 import Relatorios from '../pages/Relatorios';
 import Importacao from '../pages/Importacao';
 import Configuracoes from '../pages/Configuracoes';
+import PortalCliente from '../pages/PortalCliente';
 import NotFound from '../pages/NotFound';
+import { useAuth } from '../hooks/useAuth';
+
+// Componente para proteger rotas privadas
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/" />;
+};
 
 const AppRoutes = () => {
   return (
-    <BrowserRouter basename="/SolTracker-">
+    <HashRouter>
       <Routes>
+        {/* Rota Pública do Portal do Cliente (Totalmente isolada) */}
+        <Route path="/p/:hash" element={<PortalCliente />} />
+
+        {/* Rotas Privadas (Envolvidas pelo Layout do Sistema) */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="clientes" element={<Clientes />} />
-          <Route path="clientes/novo" element={<NovoCliente />} />
-          <Route path="clientes/:id" element={<DetalhesCliente />} />
-          <Route path="clientes/editar/:id" element={<EditarCliente />} />
-          <Route path="financeiro" element={<Financeiro />} />
-          <Route path="historico" element={<Historico />} />
-          <Route path="relatorios" element={<Relatorios />} />
-          <Route path="importacao" element={<Importacao />} />
-          <Route path="configuracoes" element={<Configuracoes />} />
+          <Route path="clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
+          <Route path="clientes/novo" element={<PrivateRoute><NovoCliente /></PrivateRoute>} />
+          <Route path="clientes/:id" element={<PrivateRoute><DetalhesCliente /></PrivateRoute>} />
+          <Route path="clientes/editar/:id" element={<PrivateRoute><EditarCliente /></PrivateRoute>} />
+          <Route path="financeiro" element={<PrivateRoute><Financeiro /></PrivateRoute>} />
+          <Route path="historico" element={<PrivateRoute><Historico /></PrivateRoute>} />
+          <Route path="relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />
+          <Route path="importacao" element={<PrivateRoute><Importacao /></PrivateRoute>} />
+          <Route path="configuracoes" element={<PrivateRoute><Configuracoes /></PrivateRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 
