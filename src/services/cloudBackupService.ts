@@ -1,7 +1,7 @@
 import { CryptoService } from './cryptoService';
 import { db } from './db';
 
-const WORKER_URL = 'https://soltracker-api.seu-subdominio.workers.dev';
+const WORKER_URL = 'https://soltracker.felipecleones999.workers.dev';
 
 export const CloudBackupService = {
   // Gera um ID único e seguro baseado em Email + Senha
