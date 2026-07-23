@@ -259,6 +259,7 @@ const Financeiro: React.FC = () => {
                 </select>
               </div>
               <div className="form-group"><label>Mês</label><input {...register('referenciaMes')} placeholder="MM/AAAA" /></div>
+              <div className="form-group"><label>Consumo (kW)</label><input {...register('consumoKw', { valueAsNumber: true })} type="number" step="0.01" /></div>
               <div className="form-group"><label>Valor Bruto</label><input {...register('valorTotalBruto', { valueAsNumber: true })} type="number" step="0.01" /></div>
               <div className="form-group"><label>Taxa</label><input {...register('valorTaxaUso', { valueAsNumber: true })} type="number" step="0.01" /></div>
               <div className="form-group"><label>Vencimento</label><input {...register('data')} type="date" /></div>

@@ -5,7 +5,8 @@ import { type Cliente, type Pagamento } from '@/services/db';
 import {
   MdPeople, MdAttachMoney, MdTrendingUp, MdTrendingDown,
   MdElectricBolt, MdPictureAsPdf, MdTableChart,
-  MdPendingActions, MdMoneyOff, MdPercent, MdAccountBalanceWallet
+  MdPendingActions, MdPercent, MdAccountBalanceWallet,
+  MdReceiptLong
 } from 'react-icons/md';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -23,6 +24,7 @@ interface DashboardStats {
   receitaRecebida: number;
   receitaEmAberto: number;
   lucroReal: number;
+  totalTaxasPagas: number;
   totalInadimplentes: number;
   taxaInadimplencia: number;
   crescimentoMensal: number;
@@ -36,6 +38,7 @@ const Home: React.FC = () => {
     receitaRecebida: 0,
     receitaEmAberto: 0,
     lucroReal: 0,
+    totalTaxasPagas: 0,
     totalInadimplentes: 0,
     taxaInadimplencia: 0,
     crescimentoMensal: 0,
@@ -58,9 +61,11 @@ const Home: React.FC = () => {
       setFaturas(p);
 
       const prevista = p.reduce((acc, f) => acc + (f.valor || 0), 0);
-      const recebida = p.filter(f => f.status === 'pago').reduce((acc, f) => acc + (f.valor || 0), 0);
+      const pagas = p.filter(f => f.status === 'pago');
+      const recebida = pagas.reduce((acc, f) => acc + (f.valor || 0), 0);
       const emAberto = p.filter(f => f.status !== 'pago').reduce((acc, f) => acc + (f.valor || 0), 0);
-      const lucro = p.filter(f => f.status === 'pago').reduce((acc, f) => acc + (f.valorLiquido || 0), 0);
+      const lucro = pagas.reduce((acc, f) => acc + (f.valorLiquido || 0), 0);
+      const taxasPagas = pagas.reduce((acc, f) => acc + (f.valorTaxaUso || 0), 0);
       const consumo = p.reduce((acc, f) => acc + (f.consumoKw || 0), 0);
 
       const inadimplentesIds = new Set(p.filter(f => f.status === 'atrasado').map(f => f.clienteId));
@@ -79,6 +84,7 @@ const Home: React.FC = () => {
         receitaRecebida: recebida,
         receitaEmAberto: emAberto,
         lucroReal: lucro,
+        totalTaxasPagas: taxasPagas,
         totalInadimplentes,
         taxaInadimplencia,
         crescimentoMensal: crescimento,
@@ -115,7 +121,7 @@ const Home: React.FC = () => {
     }
   };
 
-  const ModernCard = ({ title, value, icon, color, trend, subValue }: { title: string; value: string; icon: any; color: string; trend?: number; subValue?: string }) => (
+  const ModernCard = ({ title, value, icon, color, trend, subValue }: { title: string; value: string; icon: React.ReactNode; color: string; trend?: number; subValue?: string }) => (
     <motion.div
       whileHover={{ y: -4 }}
       style={{
@@ -129,7 +135,7 @@ const Home: React.FC = () => {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <div style={{ padding: '10px', backgroundColor: `${color}15`, borderRadius: '12px', color: color }}>
-          {React.createElement(icon, { size: 24 })}
+          {icon}
         </div>
         {trend !== undefined && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: trend >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
@@ -150,12 +156,12 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ textAlign: 'left' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.2rem' }}>Dashboard Financeiro</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Gestão executiva e saúde financeira da operação.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="header-actions" style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={() => exportToPDF(faturas, clientes)} style={{ borderRadius: '12px' }}><MdPictureAsPdf size={20} /></button>
           <button className="btn btn-secondary" onClick={() => exportToExcel(faturas, clientes)} style={{ borderRadius: '12px' }}><MdTableChart size={20} /></button>
         </div>
@@ -165,28 +171,28 @@ const Home: React.FC = () => {
         <ModernCard
           title="Receita Prevista"
           value={`R$ ${stats.receitaPrevista.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={MdAccountBalanceWallet}
+          icon={<MdAccountBalanceWallet size={24} />}
           color="var(--solar-yellow)"
           subValue="Total faturado no período"
         />
         <ModernCard
           title="Recebido"
           value={`R$ ${stats.receitaRecebida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={MdAttachMoney}
+          icon={<MdAttachMoney size={24} />}
           color="#28a745"
           trend={stats.crescimentoMensal}
         />
         <ModernCard
           title="Em Aberto"
           value={`R$ ${stats.receitaEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={MdPendingActions}
+          icon={<MdPendingActions size={24} />}
           color="#fdb813"
           subValue="Aguardando pagamento"
         />
         <ModernCard
           title="Lucro Real"
           value={`R$ ${stats.lucroReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          icon={MdTrendingUp}
+          icon={<MdTrendingUp size={24} />}
           color="var(--solar-orange)"
           subValue="Após descontos e taxas"
         />
@@ -194,28 +200,29 @@ const Home: React.FC = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <ModernCard
-          title="Clientes Ativos"
-          value={stats.totalClientes.toString()}
-          icon={MdPeople}
-          color="#007bff"
+          title="Taxas Pagas"
+          value={`R$ ${stats.totalTaxasPagas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={<MdReceiptLong size={24} />}
+          color="#6c757d"
+          subValue="Total pago à concessionária"
         />
         <ModernCard
-          title="Inadimplentes"
-          value={stats.totalInadimplentes.toString()}
-          icon={MdMoneyOff}
-          color="#dc3545"
-          subValue="Faturas com atraso"
+          title="Clientes Ativos"
+          value={stats.totalClientes.toString()}
+          icon={<MdPeople size={24} />}
+          color="#007bff"
         />
         <ModernCard
           title="Taxa de Inadimplência"
           value={`${stats.taxaInadimplencia.toFixed(1)}%`}
-          icon={MdPercent}
+          icon={<MdPercent size={24} />}
           color="#6c757d"
+          subValue={`${stats.totalInadimplentes} clientes em atraso`}
         />
         <ModernCard
           title="Consumo Total"
           value={`${stats.consumoGeral.toFixed(0)} kW`}
-          icon={MdElectricBolt}
+          icon={<MdElectricBolt size={24} />}
           color="var(--solar-yellow)"
         />
       </div>
