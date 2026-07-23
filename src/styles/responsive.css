@@ -1,0 +1,86 @@
+/* Estilos Globais de Responsividade */
+
+@media (max-width: 768px) {
+  /* Ajustes de Título e Header */
+  h1 {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  p {
+    font-size: 0.85rem !important;
+  }
+
+  /* Ajustes de Tabelas - Scroll Horizontal */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  table {
+    min-width: 600px; /* Garante que a tabela não esmague os dados */
+  }
+
+  /* Ajustes de Cabeçalhos de Página com Botões */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .header-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.8rem;
+  }
+
+  /* Filtros de busca em dispositivos móveis */
+  .filter-bar {
+    flex-direction: column;
+    gap: 0.75rem !important;
+  }
+
+  .filter-bar input, .filter-bar select {
+    width: 100% !important;
+  }
+
+  /* Gráficos em Mobile */
+  .chart-container {
+    padding: 1rem !important;
+    height: 300px !important;
+  }
+
+  .recharts-responsive-container {
+    min-height: 250px;
+  }
+
+  /* Esconder elementos secundários em mobile */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Dashboard Cards Mobile */
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Utilitário para envolver tabelas */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+}
