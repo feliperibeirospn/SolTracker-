@@ -11,10 +11,11 @@ export interface Cliente {
   consumoMedio: number;
   saldoAtual: number;
   valorMensal: number;
-  percentualDesconto: number; // Novo: Ex: 20 para 20%
+  percentualDesconto: number;
   dataInicio: Date;
   observacoes?: string;
   dataCadastro: Date;
+  isFavorito?: boolean; // Novo campo para favoritos
 }
 
 export interface Pagamento {
@@ -22,18 +23,15 @@ export interface Pagamento {
   clienteId: number;
   data: Date;
   status: 'pendente' | 'pago' | 'atrasado';
-
-  // Novos campos da regra de negócio
   consumoKw: number;
-  valorTotalBruto: number; // Valor da conta sem desconto
-  valorTaxaUso: number; // Taxa da concessionária (Cosern, etc)
+  valorTotalBruto: number;
+  valorTaxaUso: number;
   percentualDescontoAplicado: number;
-  valorComDesconto: number; // (Total Bruto - Desconto%)
-  valorLiquido: number; // Lucro = (Total Bruto - Desconto%) - Taxa Uso
-
-  valor: number; // Valor que o cliente deve pagar (mesmo que valorComDesconto)
+  valorComDesconto: number;
+  valorLiquido: number;
+  valor: number;
   metodo?: string;
-  referenciaMes?: string; // Ex: "07/2026"
+  referenciaMes?: string;
 }
 
 export interface Historico {
@@ -58,8 +56,8 @@ export class SolarTrackerDB extends Dexie {
   constructor() {
     super('solarTracker');
 
-    this.version(4).stores({
-      clientes: '++id, nome, email, documento, cidade',
+    this.version(5).stores({
+      clientes: '++id, nome, email, documento, cidade, isFavorito',
       pagamentos: '++id, clienteId, data, status, referenciaMes',
       historicos: '++id, tipo, data',
       configuracoes: 'chave'

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ClienteService } from '@/services/clienteService';
 import { FinanceiroService } from '@/services/financeiroService';
 import { type Cliente } from '@/services/db';
-import { MdAdd, MdSearch, MdEdit, MdDelete, MdChevronLeft, MdChevronRight, MdSort } from 'react-icons/md';
+import { MdAdd, MdSearch, MdEdit, MdDelete, MdChevronLeft, MdChevronRight, MdSort, MdStar, MdStarBorder } from 'react-icons/md';
 import { subMonths, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Skeleton from '@/components/Skeleton';
@@ -23,6 +23,7 @@ const Clientes: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<keyof Cliente>('nome');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,6 +42,15 @@ const Clientes: React.FC = () => {
       toast.error('Erro ao carregar clientes');
     } finally {
       setTimeout(() => setLoading(false), 500);
+    }
+  };
+
+  const handleToggleFavorito = async (id: number) => {
+    try {
+      await ClienteService.toggleFavorito(id);
+      loadClientes();
+    } catch (error) {
+      toast.error('Erro ao atualizar favorito');
     }
   };
 
@@ -75,21 +85,25 @@ const Clientes: React.FC = () => {
 
   const filteredAndSortedClientes = useMemo(() => {
     return clientes
-      .filter(c =>
-        c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.documento.includes(searchTerm) ||
-        c.cidade.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      .filter(c => {
+        const matchesSearch = c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.documento.includes(searchTerm) ||
+          c.cidade.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesFavorite = showOnlyFavorites ? c.isFavorito : true;
+
+        return matchesSearch && matchesFavorite;
+      })
       .sort((a, b) => {
         const valA = a[sortField];
         const valB = b[sortField];
-        if (!valA || !valB) return 0;
+        if (valA === undefined || valB === undefined) return 0;
 
         if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
-  }, [clientes, searchTerm, sortField, sortDirection]);
+  }, [clientes, searchTerm, sortField, sortDirection, showOnlyFavorites]);
 
   const totalPages = Math.ceil(filteredAndSortedClientes.length / itemsPerPage);
   const paginatedClientes = filteredAndSortedClientes.slice(
@@ -120,10 +134,10 @@ const Clientes: React.FC = () => {
             onClick={async () => {
               const promise = (async () => {
                 const testData: any[] = [
-                  { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'João Solar', telefone: '(11) 98888-7777', documento: '123.456.789-01', email: 'joao@solar.com', cidade: 'São Paulo', distribuidora: 'Enel', consumoMedio: 350, saldoAtual: 0, valorMensal: 150, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date(), isFavorito: true },
                   { nome: 'Maria Painel', telefone: '(21) 97777-6666', documento: '987.654.321-09', email: 'maria@paineis.com', cidade: 'Rio de Janeiro', distribuidora: 'Light', consumoMedio: 450, saldoAtual: 50, valorMensal: 200, percentualDesconto: 15, dataInicio: new Date(), dataCadastro: new Date() },
                   { nome: 'Carlos Energia', telefone: '(31) 96666-5555', documento: '456.123.789-05', email: 'carlos@energia.com', cidade: 'Belo Horizonte', distribuidora: 'Cemig', consumoMedio: 280, saldoAtual: -20, valorMensal: 120, percentualDesconto: 10, dataInicio: new Date(), dataCadastro: new Date() },
-                  { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, percentualDesconto: 25, dataInicio: new Date(), dataCadastro: new Date() },
+                  { nome: 'Ana Fotovoltaica', telefone: '(41) 95555-4444', documento: '321.987.654-03', email: 'ana@foto.com', cidade: 'Curitiba', distribuidora: 'Copel', consumoMedio: 600, saldoAtual: 100, valorMensal: 300, percentualDesconto: 25, dataInicio: new Date(), dataCadastro: new Date(), isFavorito: true },
                   { nome: 'Ricardo Watts', telefone: '(51) 94444-3333', documento: '159.357.258-07', email: 'ricardo@watts.com', cidade: 'Porto Alegre', distribuidora: 'CEEE', consumoMedio: 400, saldoAtual: 0, valorMensal: 180, percentualDesconto: 20, dataInicio: new Date(), dataCadastro: new Date() }
                 ];
 
@@ -164,7 +178,7 @@ const Clientes: React.FC = () => {
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            Gerar Dados de Teste
+            Gerar Dados
           </button>
           <button
             className="btn btn-primary"
@@ -180,7 +194,8 @@ const Clientes: React.FC = () => {
         display: 'flex',
         gap: '1rem',
         marginBottom: '1.5rem',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        alignItems: 'center'
       }}>
         <div style={{
           backgroundColor: 'var(--surface-color)',
@@ -212,15 +227,34 @@ const Clientes: React.FC = () => {
             }}
           />
         </div>
+
+        <button
+          onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: showOnlyFavorites ? 'var(--solar-orange)' : 'var(--surface-color)',
+            color: showOnlyFavorites ? 'white' : 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          {showOnlyFavorites ? <MdStar size={20} /> : <MdStarBorder size={20} />}
+          <span>Favoritos</span>
+        </button>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="skeleton-row" borderRadius={8} />)}
         </div>
-      ) : clientes.length === 0 ? (
+      ) : filteredAndSortedClientes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--surface-color)', borderRadius: '8px' }}>
-          <p style={{ color: 'var(--text-secondary)' }}>Nenhum cliente cadastrado ainda.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Nenhum cliente encontrado.</p>
         </div>
       ) : (
         <>
@@ -228,6 +262,7 @@ const Clientes: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+                  <th style={{ padding: '1rem', width: '40px' }}></th>
                   <th style={{ padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('nome')}>
                     Nome <MdSort size={16} />
                   </th>
@@ -244,6 +279,14 @@ const Clientes: React.FC = () => {
               <tbody>
                 {paginatedClientes.map(cliente => (
                   <tr key={cliente.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '1rem' }}>
+                      <button
+                        onClick={() => cliente.id && handleToggleFavorito(cliente.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: cliente.isFavorito ? 'var(--solar-yellow)' : 'var(--text-secondary)' }}
+                      >
+                        {cliente.isFavorito ? <MdStar size={22} /> : <MdStarBorder size={22} />}
+                      </button>
+                    </td>
                     <td style={{ padding: '1rem' }}>{cliente.nome}</td>
                     <td style={{ padding: '1rem' }}>{cliente.cidade}</td>
                     <td style={{ padding: '1rem' }}>{cliente.distribuidora}</td>

@@ -4,7 +4,7 @@ import { SyncService } from './syncService';
 export const ClienteService = {
   async create(cliente: Cliente) {
     const id = await db.clientes.add(cliente);
-    SyncService.triggerAutoSync(); // Auto-sync
+    SyncService.triggerAutoSync();
     return id;
   },
 
@@ -18,13 +18,22 @@ export const ClienteService = {
 
   async update(id: number, changes: Partial<Cliente>) {
     const result = await db.clientes.update(id, changes);
-    SyncService.triggerAutoSync(); // Auto-sync
+    SyncService.triggerAutoSync();
     return result;
   },
 
   async delete(id: number) {
     const result = await db.clientes.delete(id);
-    SyncService.triggerAutoSync(); // Auto-sync
+    SyncService.triggerAutoSync();
+    return result;
+  },
+
+  // Task 13: Favoritos
+  async toggleFavorito(id: number) {
+    const cliente = await this.getById(id);
+    if (!cliente) return;
+    const result = await db.clientes.update(id, { isFavorito: !cliente.isFavorito });
+    SyncService.triggerAutoSync();
     return result;
   }
 };
