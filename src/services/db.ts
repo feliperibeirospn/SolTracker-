@@ -15,7 +15,7 @@ export interface Cliente {
   dataInicio: Date;
   observacoes?: string;
   dataCadastro: Date;
-  isFavorito?: boolean; // Novo campo para favoritos
+  isFavorito?: boolean;
 }
 
 export interface Pagamento {
@@ -40,6 +40,9 @@ export interface Historico {
   data: Date;
   descricao: string;
   usuarioId?: string;
+  entidade?: string; // Ex: 'Cliente', 'Pagamento'
+  acao?: 'CRIAR' | 'EDITAR' | 'DELETAR' | 'LOGIN' | 'BACKUP';
+  detalhes?: string; // JSON string com diff ou detalhes extras
 }
 
 export interface Configuracao {
@@ -56,10 +59,10 @@ export class SolarTrackerDB extends Dexie {
   constructor() {
     super('solarTracker');
 
-    this.version(5).stores({
+    this.version(6).stores({
       clientes: '++id, nome, email, documento, cidade, isFavorito',
       pagamentos: '++id, clienteId, data, status, referenciaMes',
-      historicos: '++id, tipo, data',
+      historicos: '++id, tipo, data, acao, entidade',
       configuracoes: 'chave'
     });
   }
